@@ -11,6 +11,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./sources/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -34,6 +35,17 @@ services:
       timeout: 5s
       retries: 5
 
+  simulator:
+    build: ./simulator
+    container_name: techflow-simulator
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    restart: on-failure
+
   # fx-api:   <- Phase 1: uncomment when sources/fx-api/ is built
   #   build: ./sources/fx-api
   #   container_name: techflow-fx-api
@@ -41,16 +53,6 @@ services:
   #     - "8001:8001"
   #   depends_on:
   #     postgres:
-  #       condition: service_healthy
-
-  # simulator:  <- Phase 1: uncomment when simulator/ is built
-  #   build: ./simulator
-  #   container_name: techflow-simulator
-  #   env_file: .env
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     mongo:
   #       condition: service_healthy
 
 volumes:
