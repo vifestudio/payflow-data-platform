@@ -1,6 +1,6 @@
-# Techflow Data Platform
+# PayFlow Data Platform
 
-End-to-end data platform for **Techflow**, a fictional digital-payments fintech. Built on synthetic data and a 100% free, open-source stack. This is a Data Engineering portfolio project covering the full lifecycle: ingestion, a lakehouse, Medallion modeling, orchestration, a served ML model, data governance, and CI.
+End-to-end data platform for **PayFlow**, a fictional digital-payments fintech. Built on synthetic data and a 100% free, open-source stack. This is a Data Engineering portfolio project covering the full lifecycle: ingestion, a lakehouse, Medallion modeling, orchestration, a served ML model, data governance, and CI.
 
 ## Architecture
 
