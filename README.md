@@ -83,6 +83,12 @@ Screenshots captured at key milestones as proof of the system running end-to-end
 
 ![R2 Bronze - Phase 2 complete](docs/screenshots/bronze-r2-phase2.png)
 
+### Phase 2 - Airbyte connections all green (2026-11-04)
+
+Three connections running every 6 hours: MongoDB → S3, PayFlow FX Rates API (custom CDK connector) → S3, Postgres → S3. All enabled, all healthy.
+
+![Airbyte connections - Phase 2 complete](docs/screenshots/airbyte-connections-phase2.png)
+
 ## Stack
 
 | Layer | Tool |
