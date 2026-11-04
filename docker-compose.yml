@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: techflow-postgres
+    container_name: payflow-postgres
     env_file: .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -20,7 +20,7 @@ services:
 
   mongo:
     image: mongo:7
-    container_name: techflow-mongo
+    container_name: payflow-mongo
     env_file: .env
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
@@ -37,7 +37,7 @@ services:
 
   simulator:
     build: ./simulator
-    container_name: techflow-simulator
+    container_name: payflow-simulator
     env_file: .env
     depends_on:
       postgres:
@@ -46,14 +46,17 @@ services:
         condition: service_healthy
     restart: on-failure
 
-  # fx-api:   <- Phase 1: uncomment when sources/fx-api/ is built
-  #   build: ./sources/fx-api
-  #   container_name: techflow-fx-api
-  #   ports:
-  #     - "8001:8001"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  fx-api:
+    build: ./sources/fx-api
+    container_name: payflow-fx-api
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
