@@ -73,6 +73,16 @@ Most portfolio projects show one tool in isolation. This one shows how the tools
 
 The fraud label design is intentional: `fraud_labels` lives in a separate table because in production, fraud truth arrives days later via chargebacks and analyst review, never at transaction time. Mixing it with `transactions` would be an architectural error that breaks any downstream ML model.
 
+## Evidence
+
+Screenshots captured at key milestones as proof of the system running end-to-end.
+
+### Phase 2 - Bronze layer live in Cloudflare R2 (2026-11-04)
+
+22 MB across three source folders after the first Airbyte sync. All four streams landed as Parquet (accounts, transactions, fraud_labels from Postgres; telemetry_events from MongoDB; fx_rates from the custom CDK connector).
+
+![R2 Bronze - Phase 2 complete](docs/screenshots/bronze-r2-phase2.png)
+
 ## Stack
 
 | Layer | Tool |
