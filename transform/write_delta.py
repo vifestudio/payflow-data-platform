@@ -1,8 +1,8 @@
 """
-Reads Silver tables from the local DuckDB file and writes them to
+Reads Silver and Gold tables from the local DuckDB file and writes them to
 Cloudflare R2 as Delta Lake tables (append mode = time travel enabled).
 
-Run after: dbt run --select silver
+Run after: dbt run --select silver gold
 """
 import os
 import duckdb
@@ -11,9 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-DBT_DUCKDB = os.path.join(
-    os.path.dirname(__file__), "payflow", "dev.duckdb"
-)
+DBT_DUCKDB = os.path.join(os.path.dirname(__file__), "payflow", "dev.duckdb")
 
 STORAGE = {
     "endpoint_url": os.environ["R2_ENDPOINT"],
@@ -22,7 +20,7 @@ STORAGE = {
     "aws_region": "us-east-1",
 }
 
-TABLES = [
+SILVER_TABLES = [
     "silver_accounts",
     "silver_transactions",
     "silver_fraud_labels",
@@ -30,15 +28,31 @@ TABLES = [
     "silver_fx_rates",
 ]
 
+GOLD_TABLES = [
+    "gold_fraud_features",
+    "gold_daily_summary",
+    "gold_merchant_stats",
+]
+
 con = duckdb.connect(DBT_DUCKDB, read_only=True)
 
-for table in TABLES:
+print("--- Silver ---")
+for table in SILVER_TABLES:
     name = table.replace("silver_", "")
     dest = f"s3://payflow-lake/silver/{name}"
-    print(f"Writing {table} → {dest} ...", end=" ", flush=True)
+    print(f"Writing {table} -> {dest} ...", end=" ", flush=True)
+    arrow = con.execute(f"SELECT * FROM main.{table}").to_arrow_table()
+    write_deltalake(dest, arrow, mode="append", storage_options=STORAGE)
+    print(f"done ({len(arrow)} rows)")
+
+print("\n--- Gold ---")
+for table in GOLD_TABLES:
+    name = table.replace("gold_", "")
+    dest = f"s3://payflow-lake/gold/{name}"
+    print(f"Writing {table} -> {dest} ...", end=" ", flush=True)
     arrow = con.execute(f"SELECT * FROM main.{table}").to_arrow_table()
     write_deltalake(dest, arrow, mode="append", storage_options=STORAGE)
     print(f"done ({len(arrow)} rows)")
 
 con.close()
-print("\nAll Silver tables written to R2 as Delta Lake.")
+print("\nAll Silver and Gold tables written to R2 as Delta Lake.")
