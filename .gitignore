@@ -30,4 +30,6 @@ data/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
+.vscode/ml/model/
+ml/mlruns/
+ml/mlflow.db
