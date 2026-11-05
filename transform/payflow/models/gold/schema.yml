@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: gold_fraud_features
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]
+      - name: account_id
+        tests: [not_null]
+      - name: amount
+        tests: [not_null]
+      - name: currency
+        tests: [not_null]
+      - name: merchant
+        tests: [not_null]
+      - name: transaction_date
+        tests: [not_null]
+      - name: is_fraud
+        tests: [not_null]
+
+  - name: gold_daily_summary
+    columns:
+      - name: transaction_date
+        tests: [not_null, unique]
+      - name: total_transactions
+        tests: [not_null]
+      - name: total_amount_usd
+        tests: [not_null]
+      - name: fraud_count
+        tests: [not_null]
+      - name: fraud_rate
+        tests: [not_null]
+
+  - name: gold_merchant_stats
+    columns:
+      - name: merchant
+        tests: [not_null, unique]
+      - name: total_transactions
+        tests: [not_null]
+      - name: total_amount_usd
+        tests: [not_null]
+      - name: fraud_count
+        tests: [not_null]
+      - name: fraud_rate
+        tests: [not_null]

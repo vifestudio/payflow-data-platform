@@ -1,0 +1,101 @@
+version: 2
+
+models:
+  - name: silver_accounts
+    columns:
+      - name: account_id
+        tests: [not_null, unique]
+      - name: email_hashed
+        tests: [not_null]
+      - name: holder_name_hashed
+        tests: [not_null]
+      - name: country
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['CR']
+      - name: created_date
+        tests: [not_null]
+      - name: account_age_days
+        tests: [not_null]
+
+  - name: silver_transactions
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]
+      - name: account_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_accounts')
+                field: account_id
+      - name: amount
+        tests: [not_null]
+      - name: currency
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['USD', 'EUR', 'GBP', 'CRC', 'MXN']
+      - name: status
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['confirmed']
+      - name: merchant
+        tests: [not_null]
+      - name: transaction_date
+        tests: [not_null]
+      - name: hour_of_day
+        tests: [not_null]
+      - name: day_of_week
+        tests: [not_null]
+
+  - name: silver_fraud_labels
+    columns:
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('silver_transactions')
+                field: transaction_id
+      - name: is_fraud
+        tests: [not_null]
+      - name: label_date
+        tests: [not_null]
+
+  - name: silver_telemetry_events
+    columns:
+      - name: event_id
+        tests: [not_null, unique]
+      - name: transaction_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_transactions')
+                field: transaction_id
+      - name: device_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['mobile', 'desktop', 'tablet']
+      - name: latency_ms
+        tests: [not_null]
+      - name: event_at
+        tests: [not_null]
+
+  - name: silver_fx_rates
+    columns:
+      - name: currency
+        tests: [not_null]
+      - name: rate
+        tests: [not_null]
+      - name: rate_date
+        tests: [not_null]
