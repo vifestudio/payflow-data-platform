@@ -35,12 +35,33 @@ INTERVAL = int(os.getenv("SIM_INTERVAL_SECONDS", "300"))
 
 FRAUD_PATTERNS = ["card_testing", "geo_impossible", "amount_anomaly"]
 
-MERCHANTS = [
-    "Amazon", "Uber", "Netflix", "Spotify", "Apple",
-    "Walmart", "McDonald's", "Shell", "Airbnb", "Steam",
-]
+MERCHANT_VARIANTS = {
+    "Amazon":      ["Amazon", "AMAZON.COM", "Amazon.com", "AMZN Marketplace",
+                    "Amazon Prime", "amazon.com*Digital", "AMAZON MKTPLACE"],
+    "Uber":        ["Uber", "UBER*TRIP", "Uber Technologies", "UBER TRIP CR",
+                    "UBER EATS", "Uber Eats CR"],
+    "Netflix":     ["Netflix", "NETFLIX.COM", "Netflix.com", "NETFLIX INC",
+                    "NETFLIX STREAMING", "Netflix Subscription"],
+    "Spotify":     ["Spotify", "SPOTIFY AB", "Spotify Premium", "SPOTIFY USA",
+                    "spotify.com", "Spotify Music"],
+    "Apple":       ["Apple", "APPLE.COM/BILL", "Apple iTunes", "APPLE SERVICES",
+                    "iTunes Store", "Apple Store Online"],
+    "Walmart":     ["Walmart", "WALMART SUPERCENTER", "Walmart.com", "WAL-MART",
+                    "WALMART #1842", "Walmart Grocery"],
+    "McDonald's":  ["McDonald's", "MCDONALDS", "MC DONALDS #101", "McDONALD'S #247",
+                    "MCDONALD'S REST", "Mcdonald s CR"],
+    "Shell":       ["Shell", "SHELL OIL", "SHELL SERVICE STA", "SHELL GAS STATION",
+                    "Shell #789 CR", "SHELL COMBUSTIBLE"],
+    "Airbnb":      ["Airbnb", "AIRBNB INC", "Airbnb Payments", "AIRBNB * HM48XZ",
+                    "airbnb.com", "AIRBNB BOOKING"],
+    "Steam":       ["Steam", "STEAM GAMES", "Valve Steam", "STEAM PURCHASE",
+                    "store.steampowered", "Steam Digital"],
+}
 
 CURRENCIES = ["USD", "EUR", "GBP", "CRC", "MXN"]
+
+STATUS_CHOICES = ["confirmed", "declined", "pending"]
+STATUS_PROBS   = [0.85, 0.10, 0.05]
 
 
 def hourly_multiplier():
@@ -71,8 +92,10 @@ def generate_batch(pg_conn, mongo_db, batch_size):
         is_fraud = random.random() < FRAUD_RATE
         pattern = random.choice(FRAUD_PATTERNS) if is_fraud else None
         amount = generate_amount(is_fraud, pattern)
-        merchant = random.choice(MERCHANTS)
+        canonical = random.choice(list(MERCHANT_VARIANTS.keys()))
+        merchant = random.choice(MERCHANT_VARIANTS[canonical])
         currency = random.choice(CURRENCIES)
+        status = random.choices(STATUS_CHOICES, weights=STATUS_PROBS, k=1)[0]
 
         if is_fraud and pattern == "geo_impossible":
             lat = float(rng.uniform(-90, 90))
@@ -87,7 +110,7 @@ def generate_batch(pg_conn, mongo_db, batch_size):
             "merchant": merchant,
             "amount": amount,
             "currency": currency,
-            "status": "confirmed",
+            "status": status,
             "created_at": now,
         })
 

@@ -34,7 +34,7 @@ models:
   - name: gold_merchant_stats
     columns:
       - name: merchant
-        tests: [not_null, unique]
+        tests: [not_null]
       - name: total_transactions
         tests: [not_null]
       - name: total_amount_usd

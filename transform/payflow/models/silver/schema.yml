@@ -44,7 +44,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['confirmed']
+                values: ['confirmed', 'declined', 'pending']
       - name: merchant
         tests: [not_null]
       - name: transaction_date
