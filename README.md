@@ -52,7 +52,7 @@ flowchart TD
     G -->|"trains model"| ML --> MLF
     G --> VEC & BI
     MLF -->|"loads latest version"| API
-    KC --> API
+    KC -->|"calls /predict"| API
 
     PREF["Prefect\norchestration"] -. schedules .-> AB & DBT & ML
     GRAF["Grafana\nobservability"] -. monitors .-> PREF
