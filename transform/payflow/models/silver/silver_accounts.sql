@@ -1,3 +1,9 @@
+{{ config(
+    materialized='incremental',
+    unique_key='account_id',
+    incremental_strategy='delete+insert'
+) }}
+
 WITH source AS (
     SELECT *,
         ROW_NUMBER() OVER (
@@ -20,3 +26,6 @@ SELECT
     created_at,
     DATE_DIFF('day', created_at::DATE, CURRENT_DATE)                            AS account_age_days
 FROM deduped
+{% if is_incremental() %}
+WHERE created_at > (SELECT MAX(created_at) FROM {{ this }})
+{% endif %}

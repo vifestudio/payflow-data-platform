@@ -1,3 +1,9 @@
+{{ config(
+    materialized='incremental',
+    unique_key='transaction_id',
+    incremental_strategy='delete+insert'
+) }}
+
 WITH source AS (
     SELECT *,
         ROW_NUMBER() OVER (
@@ -28,8 +34,17 @@ SELECT
     EXTRACT(DOW FROM t.created_at) IN (0, 6)                           AS is_weekend,
     t.created_at
 FROM deduped t
-LEFT JOIN {{ ref('stg_fx_rates') }} fx
-    ON UPPER(TRIM(t.currency)) = UPPER(TRIM(fx.currency))
-    AND t.created_at::DATE = fx.date::DATE
+LEFT JOIN (
+    SELECT currency, rate
+    FROM {{ ref('stg_fx_rates') }}
+    WHERE (currency, date) IN (
+        SELECT currency, MAX(date)
+        FROM {{ ref('stg_fx_rates') }}
+        GROUP BY currency
+    )
+) fx ON UPPER(TRIM(t.currency)) = UPPER(TRIM(fx.currency))
 LEFT JOIN {{ ref('stg_accounts') }} a
     ON t.account_id = a.account_id
+{% if is_incremental() %}
+WHERE t.created_at > (SELECT MAX(created_at) FROM {{ this }})
+{% endif %}

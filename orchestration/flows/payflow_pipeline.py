@@ -1,0 +1,169 @@
+"""
+PayFlow pipeline orchestrated with Prefect 3.
+
+Execution order:
+  1. Trigger Airbyte syncs (Postgres, MongoDB, FX API) in parallel
+  2. Wait for all three to complete
+  3. Run dbt (incremental Silver + rebuild Gold)
+  4. Write Silver/Gold to R2 Delta Lake (MERGE for keyed tables)
+
+Schedule: hourly via flow.serve() at the bottom, or deploy to Prefect Cloud.
+
+Env vars required (same .env as the rest of the project):
+  AIRBYTE_URL                     e.g. http://localhost:8006
+  AIRBYTE_POSTGRES_CONNECTION_ID  UUID from Airbyte UI
+  AIRBYTE_MONGO_CONNECTION_ID     UUID from Airbyte UI
+  AIRBYTE_FX_CONNECTION_ID        UUID from Airbyte UI
+"""
+import os
+import subprocess
+import time
+from pathlib import Path
+
+import requests
+from dotenv import load_dotenv
+from prefect import flow, task
+from prefect.logging import get_run_logger
+
+ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(ROOT / ".env")
+
+AIRBYTE_URL = os.environ.get("AIRBYTE_URL", "http://localhost:8006")
+DBT_DIR = ROOT / "transform" / "payflow"
+TRANSFORM_DIR = ROOT / "transform"
+
+
+# ---------------------------------------------------------------------------
+# Airbyte tasks
+# ---------------------------------------------------------------------------
+
+@task(name="trigger-airbyte-sync", retries=2, retry_delay_seconds=30)
+def trigger_airbyte_sync(connection_id: str, label: str) -> int:
+    """Trigger an Airbyte connection sync and return the job ID."""
+    logger = get_run_logger()
+    resp = requests.post(
+        f"{AIRBYTE_URL}/api/v1/connections/sync",
+        json={"connectionId": connection_id},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    job_id = resp.json()["job"]["id"]
+    logger.info(f"[{label}] triggered — job {job_id}")
+    return job_id
+
+
+@task(name="wait-for-airbyte-job", retries=3, retry_delay_seconds=60)
+def wait_for_airbyte_job(job_id: int, label: str, poll_seconds: int = 10) -> None:
+    """Poll an Airbyte job until it succeeds or raises on failure."""
+    logger = get_run_logger()
+    while True:
+        resp = requests.get(
+            f"{AIRBYTE_URL}/api/v1/jobs/get",
+            json={"id": job_id},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        status = resp.json()["job"]["status"]
+        logger.info(f"[{label}] job {job_id} status: {status}")
+        if status == "succeeded":
+            return
+        if status in ("failed", "cancelled"):
+            raise RuntimeError(f"Airbyte job {job_id} ({label}) ended with status: {status}")
+        time.sleep(poll_seconds)
+
+
+# ---------------------------------------------------------------------------
+# dbt task
+# ---------------------------------------------------------------------------
+
+@task(name="run-dbt", retries=1, retry_delay_seconds=10)
+def run_dbt(full_refresh: bool = False) -> None:
+    """Run dbt models (incremental Silver + full rebuild Gold)."""
+    logger = get_run_logger()
+    env = {**os.environ}
+
+    cmd = ["dbt", "run", "--no-partial-parse"]
+    if full_refresh:
+        cmd.append("--full-refresh")
+
+    logger.info(f"Running: {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=DBT_DIR, env=env, capture_output=True, text=True)
+    logger.info(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError("dbt run failed — check logs above")
+
+
+# ---------------------------------------------------------------------------
+# Delta Lake write task
+# ---------------------------------------------------------------------------
+
+@task(name="write-delta-lake", retries=1, retry_delay_seconds=15)
+def write_delta_lake() -> None:
+    """MERGE Silver tables and overwrite Gold aggregates in R2."""
+    logger = get_run_logger()
+    env = {**os.environ, "PYTHONUTF8": "1"}
+    result = subprocess.run(
+        ["python", "write_delta.py"],
+        cwd=TRANSFORM_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    logger.info(result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError("write_delta.py failed — check logs above")
+
+
+# ---------------------------------------------------------------------------
+# Main flow
+# ---------------------------------------------------------------------------
+
+@flow(name="payflow-pipeline", log_prints=True)
+def payflow_pipeline(full_refresh: bool = False) -> None:
+    """
+    End-to-end PayFlow data pipeline.
+
+    Args:
+        full_refresh: Pass True on first run or after schema changes.
+                      Forces dbt --full-refresh and rebuilds all Silver tables.
+    """
+    logger = get_run_logger()
+    logger.info(f"Starting PayFlow pipeline (full_refresh={full_refresh})")
+
+    # 1. Trigger all three Airbyte connections
+    pg_conn_id = os.environ["AIRBYTE_POSTGRES_CONNECTION_ID"]
+    mongo_conn_id = os.environ["AIRBYTE_MONGO_CONNECTION_ID"]
+    fx_conn_id = os.environ["AIRBYTE_FX_CONNECTION_ID"]
+
+    pg_job = trigger_airbyte_sync(pg_conn_id, label="postgres")
+    mongo_job = trigger_airbyte_sync(mongo_conn_id, label="mongodb")
+    fx_job = trigger_airbyte_sync(fx_conn_id, label="fx-api")
+
+    # 2. Wait for all syncs to complete before running dbt
+    wait_for_airbyte_job(pg_job, label="postgres")
+    wait_for_airbyte_job(mongo_job, label="mongodb")
+    wait_for_airbyte_job(fx_job, label="fx-api")
+
+    # 3. Transform
+    run_dbt(full_refresh=full_refresh)
+
+    # 4. Persist to R2
+    write_delta_lake()
+
+    logger.info("PayFlow pipeline complete.")
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    # Run once immediately, then every hour.
+    # To run a single time: payflow_pipeline()
+    payflow_pipeline.serve(
+        name="payflow-hourly",
+        cron="0 * * * *",
+        parameters={"full_refresh": False},
+    )
