@@ -18,6 +18,7 @@ node_modules/
 transform/target/
 transform/dbt_packages/
 transform/logs/
+logs/
 
 # DuckDB / data local
 *.duckdb
