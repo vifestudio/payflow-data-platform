@@ -10,7 +10,7 @@ class FxRates(HttpStream):
     primary_key = ["date", "currency"]
 
     def path(self, **kwargs) -> str:
-        return "rates"
+        return "rates/history"
 
     def next_page_token(self, response) -> Optional[Mapping[str, Any]]:
         return None
@@ -19,7 +19,7 @@ class FxRates(HttpStream):
         yield from response.json()
 
     def request_params(self, stream_state=None, stream_slice=None, next_page_token=None):
-        return {}
+        return {"days": 90}
 
 
 class SourceFxRates(AbstractSource):
