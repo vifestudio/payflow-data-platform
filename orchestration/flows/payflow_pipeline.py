@@ -10,7 +10,9 @@ Execution order:
 Schedule: hourly via flow.serve() at the bottom, or deploy to Prefect Cloud.
 
 Env vars required (same .env as the rest of the project):
-  AIRBYTE_URL                     e.g. http://localhost:8006
+  AIRBYTE_URL                     e.g. http://localhost:8000
+  AIRBYTE_USERNAME                Airbyte basic-auth user (default: airbyte)
+  AIRBYTE_PASSWORD                Airbyte basic-auth password
   AIRBYTE_POSTGRES_CONNECTION_ID  UUID from Airbyte UI
   AIRBYTE_MONGO_CONNECTION_ID     UUID from Airbyte UI
   AIRBYTE_FX_CONNECTION_ID        UUID from Airbyte UI
@@ -28,7 +30,11 @@ from prefect.logging import get_run_logger
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 
-AIRBYTE_URL = os.environ.get("AIRBYTE_URL", "http://localhost:8006")
+AIRBYTE_URL = os.environ.get("AIRBYTE_URL", "http://localhost:8000")
+AIRBYTE_AUTH = (
+    os.environ.get("AIRBYTE_USERNAME", "airbyte"),
+    os.environ.get("AIRBYTE_PASSWORD", "password"),
+)
 DBT_DIR = ROOT / "transform" / "payflow"
 TRANSFORM_DIR = ROOT / "transform"
 
@@ -38,12 +44,21 @@ TRANSFORM_DIR = ROOT / "transform"
 # ---------------------------------------------------------------------------
 
 @task(name="trigger-airbyte-sync", retries=2, retry_delay_seconds=30)
-def trigger_airbyte_sync(connection_id: str, label: str) -> int:
-    """Trigger an Airbyte connection sync and return the job ID."""
+def trigger_airbyte_sync(connection_id: str, label: str, bearer_token: str | None = None) -> int:
+    """
+    Trigger an Airbyte connection sync and return the job ID.
+
+    Airbyte 1.x uses OAuth2 Bearer tokens. Pass AIRBYTE_BEARER_TOKEN in .env,
+    or leave unset to skip the trigger (Airbyte will run on its own schedule).
+    """
     logger = get_run_logger()
+    headers = {}
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
     resp = requests.post(
         f"{AIRBYTE_URL}/api/v1/connections/sync",
         json={"connectionId": connection_id},
+        headers=headers,
         timeout=30,
     )
     resp.raise_for_status()
@@ -53,13 +68,17 @@ def trigger_airbyte_sync(connection_id: str, label: str) -> int:
 
 
 @task(name="wait-for-airbyte-job", retries=3, retry_delay_seconds=60)
-def wait_for_airbyte_job(job_id: int, label: str, poll_seconds: int = 10) -> None:
+def wait_for_airbyte_job(job_id: int, label: str, bearer_token: str | None = None, poll_seconds: int = 10) -> None:
     """Poll an Airbyte job until it succeeds or raises on failure."""
     logger = get_run_logger()
+    headers = {}
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
     while True:
         resp = requests.get(
             f"{AIRBYTE_URL}/api/v1/jobs/get",
             json={"id": job_id},
+            headers=headers,
             timeout=15,
         )
         resp.raise_for_status()
@@ -132,24 +151,29 @@ def payflow_pipeline(full_refresh: bool = False) -> None:
     logger = get_run_logger()
     logger.info(f"Starting PayFlow pipeline (full_refresh={full_refresh})")
 
-    # 1. Trigger all three Airbyte connections
-    pg_conn_id = os.environ["AIRBYTE_POSTGRES_CONNECTION_ID"]
-    mongo_conn_id = os.environ["AIRBYTE_MONGO_CONNECTION_ID"]
-    fx_conn_id = os.environ["AIRBYTE_FX_CONNECTION_ID"]
+    # 1. Trigger Airbyte syncs if a bearer token is available.
+    #    Airbyte 1.x requires OAuth2; set AIRBYTE_BEARER_TOKEN in .env to enable.
+    #    Without it, Airbyte runs on its own schedule and this step is skipped.
+    bearer = os.environ.get("AIRBYTE_BEARER_TOKEN")
+    if bearer:
+        pg_conn_id = os.environ["AIRBYTE_POSTGRES_CONNECTION_ID"]
+        mongo_conn_id = os.environ["AIRBYTE_MONGO_CONNECTION_ID"]
+        fx_conn_id = os.environ["AIRBYTE_FX_CONNECTION_ID"]
 
-    pg_job = trigger_airbyte_sync(pg_conn_id, label="postgres")
-    mongo_job = trigger_airbyte_sync(mongo_conn_id, label="mongodb")
-    fx_job = trigger_airbyte_sync(fx_conn_id, label="fx-api")
+        pg_job = trigger_airbyte_sync(pg_conn_id, label="postgres", bearer_token=bearer)
+        mongo_job = trigger_airbyte_sync(mongo_conn_id, label="mongodb", bearer_token=bearer)
+        fx_job = trigger_airbyte_sync(fx_conn_id, label="fx-api", bearer_token=bearer)
 
-    # 2. Wait for all syncs to complete before running dbt
-    wait_for_airbyte_job(pg_job, label="postgres")
-    wait_for_airbyte_job(mongo_job, label="mongodb")
-    wait_for_airbyte_job(fx_job, label="fx-api")
+        wait_for_airbyte_job(pg_job, label="postgres", bearer_token=bearer)
+        wait_for_airbyte_job(mongo_job, label="mongodb", bearer_token=bearer)
+        wait_for_airbyte_job(fx_job, label="fx-api", bearer_token=bearer)
+    else:
+        logger.info("AIRBYTE_BEARER_TOKEN not set — skipping Airbyte trigger (syncs run on Airbyte schedule).")
 
-    # 3. Transform
+    # 2. Transform: incremental Silver + full rebuild Gold
     run_dbt(full_refresh=full_refresh)
 
-    # 4. Persist to R2
+    # 3. Persist to R2
     write_delta_lake()
 
     logger.info("PayFlow pipeline complete.")
