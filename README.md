@@ -22,8 +22,9 @@ flowchart TD
         AB["Airbyte\nincremental · 6h"]
         subgraph LAKE["Cloudflare R2 · Lakehouse"]
             B["Bronze\nRaw Parquet"]
-            SI["Silver\nCleaned · typed · PII-masked\nUSD-normalized · deduplicated"]
-            G["Gold\nAggregated · ML-ready features"]
+            SI["Silver · Delta Lake\nCleaned · typed · PII-masked\nUSD-normalized · deduplicated"]
+            G["Gold · Delta Lake\nAggregated · ML-ready features"]
+            B --> SI --> G
         end
         DBT["dbt + DuckDB"]
         ML["ML Training\nscikit-learn / XGBoost"]
@@ -39,12 +40,14 @@ flowchart TD
     subgraph SERVING["Serving"]
         API["FastAPI\n/predict · /search"]
         VEC["pgvector\nmerchant dedup"]
-        BI["Metabase\ndashboards"]
+        BI["Looker Studio\ndashboards"]
     end
 
     S --> PG & MG & FX
     S --> KP
-    PG & MG & FX --> AB --> B --> DBT --> SI --> DBT --> G
+    PG & MG & FX --> AB --> B
+    B --> DBT --> SI
+    SI --> DBT --> G
     G -->|"trains model"| ML --> MLF
     G --> VEC & BI
     MLF -->|"loads latest version"| API
@@ -70,7 +73,7 @@ The batch pipeline trains the model on historical Gold features. The streaming p
 | Machine learning | scikit-learn / XGBoost + MLflow |
 | Serving | FastAPI |
 | Vector search | pgvector + sentence-transformers |
-| BI | Metabase |
+| BI | Looker Studio |
 | Observability | Grafana |
 | Streaming | Apache Kafka |
 | Data quality | dbt tests + Great Expectations |
