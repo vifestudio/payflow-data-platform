@@ -12,10 +12,16 @@ flowchart TD
         S["Simulator\nPython · Faker · NumPy\nevery 5 min"]
     end
 
+    subgraph STREAMING["Streaming Pipeline · ms latency"]
+        KP["Kafka Producer\ntransaction events"]
+        KB["Kafka Broker"]
+        KC["Fraud Consumer\nML score · approve / decline"]
+    end
+
     subgraph SOURCES["Sources"]
-        PG[(PostgreSQL\naccounts · transactions\nfraud_labels · decisions)]
+        PG[(PostgreSQL\ntransactions · decisions)]
         MG[(MongoDB\ntelemetry_events)]
-        FX["FX Rates API\nFastAPI :8001"]
+        FX["FX Rates API\nexternal · FastAPI :8001"]
     end
 
     subgraph BATCH["Batch Pipeline · hours latency"]
@@ -31,28 +37,22 @@ flowchart TD
         MLF["MLflow\nModel Registry"]
     end
 
-    subgraph STREAMING["Streaming Pipeline · ms latency"]
-        KP["Kafka Producer\ntransaction events"]
-        KB["Kafka Broker"]
-        KC["Fraud Consumer"]
-    end
-
     subgraph SERVING["Serving"]
         API["FastAPI\n/predict · /search"]
         VEC["pgvector\nmerchant dedup"]
         BI["Looker Studio\ndashboards"]
     end
 
-    S --> PG & MG & FX
-    S --> KP
+    S -->|"transaction event"| KP --> KB --> KC
+    S -->|"telemetry"| MG
+    KC -->|"decision + score"| PG
     PG & MG & FX --> AB --> B
     B --> DBT --> SI
     SI --> DBT --> G
     G -->|"trains model"| ML --> MLF
     G --> VEC & BI
     MLF -->|"loads latest version"| API
-    KP --> KB --> KC -->|"score transaction"| API
-    API -->|"decision + score\napprove / decline"| PG
+    KC --> API
 
     PREF["Prefect\norchestration"] -. schedules .-> AB & DBT & ML
     GRAF["Grafana\nobservability"] -. monitors .-> PREF
