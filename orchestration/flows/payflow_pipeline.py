@@ -136,6 +136,46 @@ def write_delta_lake() -> None:
 
 
 # ---------------------------------------------------------------------------
+# BigQuery load task
+# ---------------------------------------------------------------------------
+
+@task(name="normalize-merchants", retries=1, retry_delay_seconds=15)
+def normalize_merchants() -> None:
+    """Resolve raw merchant names to canonical names via pgvector + embeddings."""
+    logger = get_run_logger()
+    env = {**os.environ, "PYTHONUTF8": "1", "POSTGRES_HOST": "localhost"}
+    result = subprocess.run(
+        ["python", "normalize_merchants.py"],
+        cwd=TRANSFORM_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    logger.info(result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError("normalize_merchants.py failed — check logs above")
+
+
+@task(name="load-bigquery", retries=1, retry_delay_seconds=30)
+def load_bigquery() -> None:
+    """Batch-load Gold tables from DuckDB into BigQuery with clean merchants (uses ADC)."""
+    logger = get_run_logger()
+    env = {**os.environ, "PYTHONUTF8": "1", "POSTGRES_HOST": "localhost"}
+    result = subprocess.run(
+        ["python", "load_to_bigquery.py"],
+        cwd=TRANSFORM_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    logger.info(result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError("load_to_bigquery.py failed — check logs above")
+
+
+# ---------------------------------------------------------------------------
 # Main flow
 # ---------------------------------------------------------------------------
 
@@ -175,6 +215,12 @@ def payflow_pipeline(full_refresh: bool = False) -> None:
 
     # 3. Persist to R2
     write_delta_lake()
+
+    # 4. Normalize merchant names (pgvector) before loading the warehouse
+    normalize_merchants()
+
+    # 5. Load Gold to BigQuery with clean merchants
+    load_bigquery()
 
     logger.info("PayFlow pipeline complete.")
 
