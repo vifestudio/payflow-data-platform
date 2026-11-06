@@ -38,10 +38,12 @@ DUCKDB_PATH = ROOT / "transform" / "payflow" / "dev.duckdb"
 
 # (duckdb source table, bigquery destination table)
 TABLES = [
-    ("gold_fraud_features", "gold_fraud_features"),
-    ("gold_daily_summary",  "gold_daily_summary"),
-    ("gold_merchant_stats", "gold_merchant_stats"),
-    ("silver_accounts",     "dim_accounts"),
+    ("gold_fraud_features",   "gold_fraud_features"),
+    ("gold_daily_summary",    "gold_daily_summary"),
+    ("gold_merchant_stats",   "gold_merchant_stats"),
+    ("silver_accounts",       "dim_accounts"),
+    ("mart_fraud_by_merchant", "mart_fraud_by_merchant"),
+    ("mart_fraud_daily",       "mart_fraud_daily"),
 ]
 
 

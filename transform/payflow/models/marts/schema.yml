@@ -1,0 +1,53 @@
+version: 2
+
+# Tests de dbt: contratos sobre lo que los datos DEBEN ser.
+# - not_null:        esta columna nunca debería tener NULL
+# - unique:          no puede haber dos filas con el mismo valor (bueno para PKs y fechas)
+# - accepted_values: solo estos valores son válidos en esta columna
+# - relationships:   esta FK debe existir en la tabla referenciada
+#
+# Si un test falla -> `dbt test` retorna exit code 1 -> Prefect puede alertar
+# antes de que datos corruptos lleguen a BigQuery y rompan el dashboard.
+
+models:
+  - name: mart_fraud_by_merchant
+    description: "Fraud rate and amounts grouped by canonical merchant name."
+    columns:
+      - name: merchant
+        description: "Canonical merchant name (after pgvector normalization in Silver)."
+        tests:
+          - not_null
+          - unique   # one row per merchant — if this breaks, GROUP BY broke or merchant_clean has NULLs
+      - name: total_transactions
+        tests: [not_null]
+      - name: fraud_transactions
+        tests: [not_null]
+      - name: fraud_rate
+        tests: [not_null]
+      - name: fraud_amount_usd
+        tests: [not_null]
+      - name: total_amount_usd
+        tests: [not_null]
+
+  - name: mart_fraud_daily
+    description: "Daily fraud trend: one row per calendar day."
+    columns:
+      - name: transaction_date
+        description: "Calendar date of the transactions."
+        tests:
+          - not_null
+          - unique   # one row per day — if this breaks, the GROUP BY broke
+      - name: total_transactions
+        tests: [not_null]
+      - name: fraud_count
+        tests: [not_null]
+      - name: approved_count
+        tests: [not_null]
+      - name: fraud_rate
+        tests: [not_null]
+      - name: total_amount_usd
+        tests: [not_null]
+      - name: fraud_amount_usd
+        tests: [not_null]
+      - name: avg_amount_usd
+        tests: [not_null]
