@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE IF NOT EXISTS accounts (
     account_id      UUID PRIMARY KEY,
     holder_name     TEXT NOT NULL,
@@ -31,6 +33,7 @@ CREATE TABLE IF NOT EXISTS fraud_labels (
 CREATE TABLE IF NOT EXISTS fraud_scores (
     transaction_id  UUID PRIMARY KEY REFERENCES transactions(transaction_id) ON DELETE CASCADE,
     is_fraud        BOOLEAN NOT NULL,
+    decision        TEXT NOT NULL DEFAULT 'approve' CHECK (decision IN ('approve', 'review', 'decline')),
     probability     NUMERIC(8, 6) NOT NULL,
     model_version   TEXT NOT NULL DEFAULT '1.0.0',
     scored_at       TIMESTAMPTZ NOT NULL DEFAULT now()

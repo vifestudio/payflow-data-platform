@@ -1,8 +1,4 @@
-{{ config(
-    materialized='incremental',
-    unique_key='account_id',
-    incremental_strategy='delete+insert'
-) }}
+{{ config(materialized='table') }}
 
 WITH source AS (
     SELECT *,
@@ -22,12 +18,15 @@ SELECT
         UPPER(TRIM(holder_name)),
         'Á','A'), 'É','E'), 'Í','I'), 'Ó','O'), 'Ú','U'), 'Ñ','N'), 'Ü','U')) AS holder_name_hashed,
     UPPER(TRIM(country))                                                         AS country,
-    LOWER(TRIM(account_type))                                                    AS account_type,
+    LOWER(TRIM(acct_type))                                                       AS account_type,
     credit_limit,
     created_at::DATE                                                             AS created_date,
     created_at,
     DATE_DIFF('day', created_at::DATE, CURRENT_DATE)                            AS account_age_days
-FROM deduped
-{% if is_incremental() %}
-WHERE created_at > (SELECT MAX(created_at) FROM {{ this }})
-{% endif %}
+FROM (
+    SELECT
+        account_id, email, holder_name, country,
+        account_type AS acct_type,
+        credit_limit, created_at
+    FROM deduped
+)

@@ -11,6 +11,8 @@ SELECT
     t.is_weekend,
     t.account_country,
     a.account_age_days,
+    a.account_type,
+    a.credit_limit,
     te.device_type,
     te.latency_ms,
     fl.is_fraud,

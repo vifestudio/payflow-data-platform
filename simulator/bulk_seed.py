@@ -44,9 +44,17 @@ MONGO_URI = (
 )
 
 FRAUD_RATE  = float(os.getenv("SIM_FRAUD_RATE", "0.015"))
-DAYS_BACK   = 90
+DAYS_BACK   = 365
 BATCH_SIZE  = 500
-ACCOUNT_POOL_SIZE = 1500
+ACCOUNT_POOL_SIZE = 3000
+
+ACCOUNT_TYPES   = ["personal", "business", "premium"]
+ACCOUNT_WEIGHTS = [0.70,       0.20,       0.10]
+CREDIT_LIMITS   = {
+    "personal": (500,    5_000),
+    "business": (5_000,  50_000),
+    "premium":  (10_000, 100_000),
+}
 
 # Each key is the canonical name pgvector will later normalize to.
 MERCHANT_VARIANTS = {
@@ -146,22 +154,28 @@ def build_account_pool(pg_conn, size):
     """Pre-generate a pool of persistent accounts."""
     accounts = []
     for _ in range(size):
-        # Created_at spread over past 2 years for variety in account_age_days
         days_ago = random.randint(0, 730)
         created = datetime.now(timezone.utc) - timedelta(days=days_ago)
+        acct_type = random.choices(ACCOUNT_TYPES, weights=ACCOUNT_WEIGHTS, k=1)[0]
+        lo, hi = CREDIT_LIMITS[acct_type]
+        credit_limit = round(float(rng.uniform(lo, hi)), 2)
         accounts.append({
             "account_id": fake.uuid4(),
             "holder_name": fake.name(),
             "email": fake.email(),
             "country": "CR",
+            "account_type": acct_type,
+            "credit_limit": credit_limit,
             "created_at": created,
         })
 
     with pg_conn.cursor() as cur:
         psycopg2.extras.execute_values(cur, """
-            INSERT INTO accounts (account_id, holder_name, email, country, created_at)
+            INSERT INTO accounts
+              (account_id, holder_name, email, country, account_type, credit_limit, created_at)
             VALUES %s ON CONFLICT (account_id) DO NOTHING
-        """, [(a["account_id"], a["holder_name"], a["email"], a["country"], a["created_at"])
+        """, [(a["account_id"], a["holder_name"], a["email"], a["country"],
+               a["account_type"], a["credit_limit"], a["created_at"])
               for a in accounts])
     pg_conn.commit()
     log.info(f"Account pool of {size} accounts created")
