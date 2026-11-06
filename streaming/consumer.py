@@ -1,10 +1,14 @@
 """
 Kafka consumer that scores every transaction in real time.
 
+This is the only writer to Postgres. Each event carries the full transaction and
+its account, so after scoring the consumer upserts the account and writes the
+transaction, its label and the fraud score together in one atomic step.
+
 Flow:
-  1. Read message from topic "transactions"
-  2. POST payload to ml-service /predict
-  3. INSERT result into fraud_scores table in Postgres
+  1. Read event from topic "transactions"
+  2. POST it to ml-service /predict
+  3. Upsert account + insert transaction + label + score in one transaction
 """
 import json
 import logging
@@ -34,6 +38,24 @@ POSTGRES_DSN = (
     f"user={os.getenv('POSTGRES_USER')} "
     f"password={os.getenv('POSTGRES_PASSWORD')}"
 )
+
+UPSERT_ACCOUNT = """
+    INSERT INTO accounts (account_id, holder_name, email, country, account_type, credit_limit)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    ON CONFLICT (account_id) DO NOTHING
+"""
+
+INSERT_TXN = """
+    INSERT INTO transactions (transaction_id, account_id, merchant, amount, currency, status, created_at)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (transaction_id) DO NOTHING
+"""
+
+INSERT_LABEL = """
+    INSERT INTO fraud_labels (transaction_id, is_fraud, fraud_pattern)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (transaction_id) DO NOTHING
+"""
 
 INSERT_SCORE = """
     INSERT INTO fraud_scores (transaction_id, is_fraud, decision, probability, model_version)
@@ -96,24 +118,34 @@ def main():
     log.info(f"Listening on topic '{KAFKA_TOPIC}' (group '{KAFKA_GROUP}')...")
 
     for message in consumer:
-        payload = message.value
-        txn_id = payload.get("transaction_id", "?")
+        event = message.value
+        txn_id = event.get("transaction_id", "?")
         try:
             resp = requests.post(
                 f"{ML_SERVICE_URL}/predict",
-                json=payload,
+                json=event,
                 timeout=5,
             )
             resp.raise_for_status()
             result = resp.json()
 
+            # Single atomic write: account, transaction, label and score land
+            # together, so a score never exists without its transaction.
             with pg_conn.cursor() as cur:
+                cur.execute(UPSERT_ACCOUNT, (
+                    event["account_id"], event["holder_name"], event["email"],
+                    event["country"], event["account_type"], event["credit_limit"],
+                ))
+                cur.execute(INSERT_TXN, (
+                    event["transaction_id"], event["account_id"], event["merchant"],
+                    event["amount"], event["currency"], event["status"], event["created_at"],
+                ))
+                cur.execute(INSERT_LABEL, (
+                    event["transaction_id"], event["is_fraud"], event["fraud_pattern"],
+                ))
                 cur.execute(INSERT_SCORE, (
-                    result["transaction_id"],
-                    result["is_fraud"],
-                    result["decision"],
-                    result["probability"],
-                    result["model_version"],
+                    result["transaction_id"], result["is_fraud"],
+                    result["decision"], result["probability"], result["model_version"],
                 ))
             pg_conn.commit()
 

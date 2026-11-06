@@ -9,8 +9,6 @@ from decimal import Decimal
 import numpy as np
 from faker import Faker
 from dotenv import load_dotenv
-import psycopg2
-import psycopg2.extras
 from pymongo import MongoClient
 
 load_dotenv()
@@ -21,12 +19,6 @@ log = logging.getLogger(__name__)
 fake = Faker()
 rng = np.random.default_rng()
 
-POSTGRES_DSN = (
-    f"host=postgres port={os.getenv('POSTGRES_PORT', '5432')} "
-    f"dbname={os.getenv('POSTGRES_DB')} "
-    f"user={os.getenv('POSTGRES_USER')} "
-    f"password={os.getenv('POSTGRES_PASSWORD')}"
-)
 MONGO_URI = (
     f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASSWORD')}"
     f"@mongo:{os.getenv('MONGO_PORT', '27017')}/?authSource=admin"
@@ -91,15 +83,15 @@ def generate_amount(is_fraud, pattern):
     return round(float(rng.lognormal(mean=4.5, sigma=1.2)), 2)
 
 
-def generate_batch(pg_conn, mongo_db, batch_size, kafka_producer=None):
+def generate_batch(mongo_db, batch_size, kafka_producer=None):
     now = datetime.now(timezone.utc)
-    transactions = []
     telemetry = []
-    fraud_labels = []
+    events = []
+    fraud_count = 0
 
     for _ in range(batch_size):
-        txn_id = fake.uuid4()
-        account_id = fake.uuid4()
+        txn_id = str(fake.uuid4())
+        account_id = str(fake.uuid4())
         is_fraud = random.random() < FRAUD_RATE
         pattern = random.choice(FRAUD_PATTERNS) if is_fraud else None
         amount = generate_amount(is_fraud, pattern)
@@ -119,95 +111,60 @@ def generate_batch(pg_conn, mongo_db, batch_size, kafka_producer=None):
         lo, hi = CREDIT_LIMITS[acct_type]
         credit_limit = round(float(rng.uniform(lo, hi)), 2)
 
-        transactions.append({
+        device_type = random.choice(["mobile", "desktop", "tablet"])
+        latency_ms = int(rng.integers(80, 2000))
+        account_age_days = int(rng.integers(30, 1500))
+        if is_fraud:
+            fraud_count += 1
+
+        telemetry.append({
+            "transaction_id": txn_id,
+            "device_type": device_type,
+            "ip_address": fake.ipv4_public(),
+            "user_agent": fake.user_agent(),
+            "latitude": lat,
+            "longitude": lon,
+            "latency_ms": latency_ms,
+            "timestamp": now,
+        })
+
+        # Full event: everything the consumer needs to upsert the account, record
+        # the transaction and its label, score it, and persist the decision.
+        events.append({
             "transaction_id": txn_id,
             "account_id": account_id,
             "merchant": merchant,
             "amount": amount,
             "currency": currency,
             "status": status,
-            "created_at": now,
+            "created_at": now.isoformat(),
+            "holder_name": fake.name(),
+            "email": fake.email(),
+            "country": "CR",
             "account_type": acct_type,
             "credit_limit": credit_limit,
-        })
-
-        telemetry.append({
-            "transaction_id": txn_id,
-            "device_type": random.choice(["mobile", "desktop", "tablet"]),
-            "ip_address": fake.ipv4_public(),
-            "user_agent": fake.user_agent(),
-            "latitude": lat,
-            "longitude": lon,
-            "latency_ms": int(rng.integers(80, 2000)),
-            "timestamp": now,
-        })
-
-        fraud_labels.append({
-            "transaction_id": txn_id,
             "is_fraud": is_fraud,
             "fraud_pattern": pattern,
-            "labeled_at": now,
+            "amount_usd": amount,
+            "hour_of_day": now.hour,
+            "day_of_week": now.weekday(),
+            "is_weekend": now.weekday() >= 5,
+            "account_age_days": account_age_days,
+            "latency_ms": float(latency_ms),
+            "account_country": "CR",
+            "device_type": device_type,
         })
 
-    with pg_conn.cursor() as cur:
-        psycopg2.extras.execute_values(
-            cur,
-            """
-            INSERT INTO accounts
-              (account_id, holder_name, email, country, account_type, credit_limit)
-            VALUES %s
-            ON CONFLICT (account_id) DO NOTHING
-            """,
-            [(t["account_id"], fake.name(), fake.email(), "CR",
-              t["account_type"], t["credit_limit"])
-             for t in transactions],
-        )
-        psycopg2.extras.execute_values(
-            cur,
-            """
-            INSERT INTO transactions
-              (transaction_id, account_id, merchant, amount, currency, status, created_at)
-            VALUES %s
-            ON CONFLICT (transaction_id) DO NOTHING
-            """,
-            [(t["transaction_id"], t["account_id"], t["merchant"],
-              t["amount"], t["currency"], t["status"], t["created_at"])
-             for t in transactions],
-        )
-        psycopg2.extras.execute_values(
-            cur,
-            """
-            INSERT INTO fraud_labels
-              (transaction_id, is_fraud, fraud_pattern, labeled_at)
-            VALUES %s
-            ON CONFLICT (transaction_id) DO NOTHING
-            """,
-            [(f["transaction_id"], f["is_fraud"], f["fraud_pattern"], f["labeled_at"])
-             for f in fraud_labels],
-        )
-    pg_conn.commit()
-
+    # Telemetry goes straight to MongoDB (operational event store, a batch source).
     mongo_db.telemetry_events.insert_many(telemetry)
 
+    # Everything that reaches Postgres flows through Kafka -> consumer -> ML.
     if kafka_producer:
-        for txn, tel in zip(transactions, telemetry):
-            event = {
-                "transaction_id": txn["transaction_id"],
-                "amount_usd":      txn["amount"],
-                "hour_of_day":     txn["created_at"].hour,
-                "day_of_week":     txn["created_at"].weekday(),
-                "is_weekend":      txn["created_at"].weekday() >= 5,
-                "account_age_days": int(rng.integers(30, 1500)),
-                "latency_ms":      float(tel["latency_ms"]),
-                "account_country": "CR",
-                "device_type":     tel["device_type"],
-                "currency":        txn["currency"],
-            }
+        for event in events:
             kafka_producer.send(KAFKA_TOPIC, value=event)
         kafka_producer.flush()
 
-    fraud_count = sum(1 for f in fraud_labels if f["is_fraud"])
-    log.info(f"Batch inserted: {batch_size} transactions, {fraud_count} fraud ({fraud_count/batch_size:.1%})")
+    log.info(f"Batch published: {batch_size} transactions, {fraud_count} fraud ({fraud_count/batch_size:.1%})")
 
 
 def wait_for_kafka(bootstrap, retries=15, delay=5):
@@ -227,33 +184,20 @@ def wait_for_kafka(bootstrap, retries=15, delay=5):
     return None
 
 
-def wait_for_postgres(dsn, retries=10, delay=5):
-    for i in range(retries):
-        try:
-            conn = psycopg2.connect(dsn)
-            log.info("Postgres ready")
-            return conn
-        except psycopg2.OperationalError:
-            log.warning(f"Postgres not ready, retry {i+1}/{retries}")
-            time.sleep(delay)
-    raise RuntimeError("Could not connect to Postgres")
-
-
 def main():
-    pg_conn = wait_for_postgres(POSTGRES_DSN)
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[os.getenv("POSTGRES_DB", "techflow")]
 
     kafka_bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
     kafka_producer = wait_for_kafka(kafka_bootstrap) if kafka_bootstrap else None
     if not kafka_producer:
-        log.info("KAFKA_BOOTSTRAP_SERVERS not set — running without Kafka streaming")
+        log.warning("KAFKA_BOOTSTRAP_SERVERS not set — no transactions will be published")
 
     log.info(f"Simulator started. Interval: {INTERVAL}s, Fraud rate: {FRAUD_RATE:.1%}")
 
     while True:
         batch_size = max(1, int(10 * hourly_multiplier()))
-        generate_batch(pg_conn, mongo_db, batch_size, kafka_producer)
+        generate_batch(mongo_db, batch_size, kafka_producer)
         time.sleep(INTERVAL)
 
 

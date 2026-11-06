@@ -145,6 +145,9 @@ Merchant names in the raw data are dirty: "Amazon", "AMAZON.COM", "AMZN Marketpl
 **Model bootstrapped on a 100k historical seed.**
 A fraud model needs enough labeled history to learn from before it can score anything. The first model is trained on a one-time seed of 100,000 transactions spanning 365 days (`simulator/bulk_seed.py`), which gives it realistic fraud patterns and class balance from day one. This seed is a training bootstrap, not part of the runtime architecture: in steady state every transaction reaches Postgres only through the streaming path (Kafka to the fraud consumer), and scheduled retrains use the history that accumulates there.
 
+**Synchronous authorization vs asynchronous analytics.**
+The customer-facing approve/decline answer belongs to the operational plane: a payments backend would call the fraud scoring API (`/predict`) synchronously and return the decision in the same request, in milliseconds, while persisting the transaction and its decision to Postgres. The lakehouse (R2) and warehouse (BigQuery) are never in that request path; they are the analytical plane that Airbyte populates downstream for monitoring, dashboards and retraining. This project implements the data engineering side: real-time scoring, the batch lakehouse, and the warehouse. The authorization backend itself (an `/authorize` endpoint that returns the decision to the client) is backend engineering and is intentionally out of scope, noted here to show where the data pipeline fits in the full system.
+
 **Two pipelines, one model.**
 The batch pipeline trains the fraud model on historical Gold features. The streaming pipeline serves that same model for real-time decisions. MLflow is the bridge: batch registers a new version, FastAPI promotes it without redeployment. This is the standard MLOps pattern at any fintech operating at scale.
 
