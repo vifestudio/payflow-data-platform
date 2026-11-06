@@ -36,8 +36,8 @@ POSTGRES_DSN = (
 )
 
 INSERT_SCORE = """
-    INSERT INTO fraud_scores (transaction_id, is_fraud, probability, model_version)
-    VALUES (%s, %s, %s, %s)
+    INSERT INTO fraud_scores (transaction_id, is_fraud, decision, probability, model_version)
+    VALUES (%s, %s, %s, %s, %s)
     ON CONFLICT (transaction_id) DO NOTHING
 """
 
@@ -111,13 +111,13 @@ def main():
                 cur.execute(INSERT_SCORE, (
                     result["transaction_id"],
                     result["is_fraud"],
+                    result["decision"],
                     result["probability"],
                     result["model_version"],
                 ))
             pg_conn.commit()
 
-            flag = "FRAUD" if result["is_fraud"] else "ok"
-            log.info(f"[{flag}] {result['transaction_id']}  p={result['probability']:.4f}")
+            log.info(f"[{result['decision']}] {result['transaction_id']}  p={result['probability']:.4f}")
 
         except requests.RequestException as e:
             log.error(f"ML service error for {txn_id}: {e}")

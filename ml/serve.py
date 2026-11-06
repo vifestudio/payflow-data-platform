@@ -22,6 +22,16 @@ ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "ml" / "model" / "fraud_pipeline.joblib"
 
 FRAUD_THRESHOLD = float(os.environ.get("FRAUD_THRESHOLD", "0.5"))
+REVIEW_THRESHOLD = float(os.environ.get("REVIEW_THRESHOLD", "0.30"))
+DECLINE_THRESHOLD = float(os.environ.get("DECLINE_THRESHOLD", "0.70"))
+
+
+def decide(probability: float) -> str:
+    if probability >= DECLINE_THRESHOLD:
+        return "decline"
+    if probability >= REVIEW_THRESHOLD:
+        return "review"
+    return "approve"
 
 app = FastAPI(title="PayFlow Fraud Scoring API", version="1.0.0")
 
@@ -74,6 +84,7 @@ class TransactionIn(BaseModel):
 class PredictionOut(BaseModel):
     transaction_id: str
     is_fraud: bool
+    decision: str
     probability: float
     model_version: str = "1.0.0"
 
@@ -92,6 +103,8 @@ def model_info():
     return {
         "model_path": str(MODEL_PATH),
         "fraud_threshold": FRAUD_THRESHOLD,
+        "review_threshold": REVIEW_THRESHOLD,
+        "decline_threshold": DECLINE_THRESHOLD,
         "features": [
             "amount_usd", "hour_of_day", "day_of_week", "is_weekend",
             "account_age_days", "latency_ms",
@@ -118,10 +131,12 @@ def predict(txn: TransactionIn):
     }])
 
     probability = float(_pipeline.predict_proba(row)[0, 1])
-    is_fraud = probability >= FRAUD_THRESHOLD
+    decision = decide(probability)
+    is_fraud = decision == "decline"
 
     return PredictionOut(
         transaction_id=txn.transaction_id,
         is_fraud=is_fraud,
+        decision=decision,
         probability=round(probability, 6),
     )
