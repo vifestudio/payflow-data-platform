@@ -5,6 +5,7 @@ SELECT
     t.amount_usd,
     t.currency,
     t.merchant,
+    t.merchant_clean,
     t.transaction_date,
     t.hour_of_day,
     t.day_of_week,

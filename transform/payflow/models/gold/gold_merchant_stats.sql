@@ -1,5 +1,5 @@
 SELECT
-    t.merchant,
+    t.merchant_clean                                               AS merchant,
     COUNT(*)                                                        AS total_transactions,
     ROUND(SUM(t.amount_usd), 2)                                    AS total_amount_usd,
     ROUND(AVG(t.amount_usd), 2)                                    AS avg_amount_usd,
@@ -11,5 +11,5 @@ SELECT
 FROM {{ ref('silver_transactions') }} t
 LEFT JOIN {{ ref('silver_fraud_labels') }} fl
     ON t.transaction_id = fl.transaction_id
-GROUP BY t.merchant
+GROUP BY t.merchant_clean
 ORDER BY total_transactions DESC

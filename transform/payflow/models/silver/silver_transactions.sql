@@ -26,6 +26,7 @@ SELECT
         ELSE NULL
     END                                                                 AS amount_usd,
     TRIM(t.merchant)                                                    AS merchant,
+    COALESCE(m.canonical_merchant, TRIM(t.merchant))                    AS merchant_clean,
     LOWER(TRIM(t.status))                                               AS status,
     a.country                                                           AS account_country,
     t.created_at::DATE                                                  AS transaction_date,
@@ -45,6 +46,8 @@ LEFT JOIN (
 ) fx ON UPPER(TRIM(t.currency)) = UPPER(TRIM(fx.currency))
 LEFT JOIN {{ ref('stg_accounts') }} a
     ON t.account_id = a.account_id
+LEFT JOIN {{ ref('stg_merchant_map') }} m
+    ON TRIM(t.merchant) = m.raw_merchant
 {% if is_incremental() %}
 WHERE t.created_at > (SELECT MAX(created_at) FROM {{ this }})
 {% endif %}

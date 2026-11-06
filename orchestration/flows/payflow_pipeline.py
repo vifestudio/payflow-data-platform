@@ -210,16 +210,16 @@ def payflow_pipeline(full_refresh: bool = False) -> None:
     else:
         logger.info("AIRBYTE_BEARER_TOKEN not set — skipping Airbyte trigger (syncs run on Airbyte schedule).")
 
-    # 2. Transform: incremental Silver + full rebuild Gold
-    run_dbt(full_refresh=full_refresh)
-
-    # 3. Persist to R2
-    write_delta_lake()
-
-    # 4. Normalize merchant names (pgvector) before loading the warehouse
+    # 2. Normalize merchant names (pgvector -> R2) so Silver can bake merchant_clean
     normalize_merchants()
 
-    # 5. Load Gold to BigQuery with clean merchants
+    # 3. Transform: Silver (with merchant_clean) + Gold
+    run_dbt(full_refresh=full_refresh)
+
+    # 4. Persist to R2
+    write_delta_lake()
+
+    # 5. Load Gold to BigQuery
     load_bigquery()
 
     logger.info("PayFlow pipeline complete.")
