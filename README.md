@@ -67,7 +67,8 @@ flowchart TD
     G --> BQ --> LS & TB & PB & NLQ
 
     PREF -. "triggers" .-> AB & VEC & DBT & ML
-    PG & KC -.->|"metrics"| GRAF
+    PREF -.->|"run metrics"| GRAF
+    KC & API2 -.->|"lag · latency"| GRAF
 ```
 
 The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle — that feedback becomes part of the next training run, closing the loop.
