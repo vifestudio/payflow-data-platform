@@ -13,70 +13,75 @@ flowchart TD
     end
 
     subgraph STREAMING["Streaming Pipeline · ms latency"]
-        KP["Kafka Producer\ntransaction events"]
-        KB["Kafka Broker"]
-        KC["Fraud Consumer\nML score · approve / decline"]
+        KP["Kafka Producer"]
+        KB["Kafka Broker\nApache Kafka"]
+        KC["Fraud Consumer\nkafka-python"]
+        FSCORE[("fraud_scores\nPostgreSQL")]
     end
 
-    subgraph SOURCES["Sources"]
-        PG[(PostgreSQL\ntransactions · decisions)]
+    subgraph SOURCES["Operational Sources"]
+        PG[(PostgreSQL\ntransactions · accounts\nfraud_labels)]
         MG[(MongoDB\ntelemetry_events)]
-        FX["FX Rates API\nexternal · FastAPI :8001"]
+        FX["FX Rates API\nFastAPI :8001"]
     end
 
-    subgraph BATCH["Batch Pipeline · hours latency"]
-        AB["Airbyte\nincremental · 6h"]
-        subgraph LAKE["Cloudflare R2 · Lakehouse"]
+    subgraph BATCH["Batch Pipeline · hourly"]
+        AB["Airbyte\nincremental · full-refresh"]
+        subgraph LAKE["Cloudflare R2 · Delta Lakehouse"]
             B["Bronze\nRaw Parquet"]
-            SI["Silver · Delta Lake\nCleaned · typed · PII-masked\nUSD-normalized · deduplicated"]
-            G["Gold · Delta Lake\nAggregated · ML-ready features"]
+            SI["Silver · Delta Lake\ncleaned · typed · deduplicated"]
+            G["Gold · Delta Lake\naggregated · ML-ready features"]
             B --> SI --> G
         end
         DBT["dbt + DuckDB"]
-        ML["ML Training\nscikit-learn / XGBoost"]
-        MLF["MLflow\nModel Registry"]
+        ML["XGBoost + MLflow\nfraud detection model"]
     end
 
-    subgraph SERVING["Serving"]
-        API["FastAPI\n/predict · /search"]
-        VEC["pgvector\nmerchant dedup"]
-        BI["Looker Studio\ndashboards"]
+    subgraph ANALYTICS["Analytics Layer"]
+        VEC["pgvector\nmerchant name normalization\nsentence-transformers embeddings"]
+        API2["FastAPI /predict\nfraud scoring service"]
+        BQ[("BigQuery\npayflow_analytics\ngold tables · clean merchants")]
+        LS["Looker Studio\ndashboards · reports"]
     end
 
-    S -->|"transaction event"| KP --> KB --> KC
+    S -->|"writes batch"| PG
     S -->|"telemetry"| MG
-    KC -->|"decision + score"| PG
-    PG & MG & FX --> AB --> B
-    B --> DBT --> SI
-    SI --> DBT --> G
-    G -->|"trains model"| ML --> MLF
-    G --> VEC & BI
-    MLF -->|"loads latest version"| API
-    KC -->|"calls /predict"| API
+    S -->|"publishes event"| KP --> KB --> KC
+    KC -->|"POST /predict"| API2
+    KC -->|"inserts score"| FSCORE
 
-    PREF["Prefect\norchestration"] -. schedules .-> AB & DBT & ML
-    GRAF["Grafana\nobservability"] -. monitors .-> PREF
+    PG & MG & FX --> AB --> B
+    B --> DBT --> SI --> DBT --> G
+
+    G -->|"trains on historical features"| ML
+    ML -->|"serves latest model"| API2
+
+    G -->|"normalize merchants"| VEC --> BQ --> LS
+
+    PREF["Prefect · hourly orchestration"] -. "triggers" .-> AB & DBT & ML & VEC
 ```
 
-The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model — before the payment clears. The decision result (approved/declined + fraud score) is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle. That feedback becomes part of the next training run, closing the loop: better data produces a better model, which produces better decisions, which produces richer training data.
+The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle — that feedback becomes part of the next training run, closing the loop.
+
+Gold data is loaded into BigQuery as the analytical warehouse after merchant names are normalized via pgvector. Looker Studio connects natively to BigQuery for dashboards and reporting.
 
 ## Stack
 
 | Layer | Tool |
 | --- | --- |
 | Data simulation | Python, Faker, NumPy |
-| Sources | PostgreSQL 16, MongoDB 7, FastAPI |
+| Operational sources | PostgreSQL 16, MongoDB 7, FastAPI |
 | Ingestion | Airbyte (incremental + full-refresh) |
 | Lakehouse storage | Cloudflare R2 (Parquet + Delta Lake) |
 | Transform / compute | dbt + DuckDB |
 | Orchestration | Prefect |
-| Machine learning | scikit-learn / XGBoost + MLflow |
-| Serving | FastAPI |
-| Vector search | pgvector + sentence-transformers |
+| Machine learning | XGBoost + scikit-learn + MLflow |
+| Real-time serving | Apache Kafka + FastAPI |
+| Merchant normalization | pgvector + sentence-transformers |
+| Analytical warehouse | BigQuery |
 | BI | Looker Studio |
 | Observability | Grafana |
-| Streaming | Apache Kafka |
-| Data quality | dbt tests + Great Expectations |
+| Data quality | dbt tests |
 | CI | GitHub Actions |
 
 ## Repository layout
@@ -121,6 +126,12 @@ R2 is S3-compatible with no egress fees, making it the right choice for a portfo
 
 **DuckDB for compute, not Spark.**
 The dataset is synthetic and small. DuckDB reads Parquet directly from R2 via the httpfs extension, executes dbt models, and writes Silver and Gold back to R2 without a cluster. For a production fintech at scale, the same Medallion models run on Spark or BigQuery with minimal changes to the SQL.
+
+**Data lake and analytical warehouse are separate layers.**
+Cloudflare R2 holds the full history as Delta Lake files — cheap, durable, queryable by DuckDB. BigQuery holds only the Gold tables, optimized for fast analytical queries and BI tools. This is the standard lakehouse pattern: the lake owns the data, the warehouse owns the queries. R2 is equivalent to S3 or GCS in this role; swapping it out requires no changes to the dbt or DuckDB layer.
+
+**pgvector for merchant normalization, not for the fraud model.**
+Merchant names in the raw data are dirty: "Amazon", "AMAZON.COM", "AMZN Marketplace", and "amazon.com*Digital" are the same merchant. pgvector generates sentence-transformer embeddings for each raw name and finds the nearest canonical name by cosine similarity. This normalization runs in the Prefect pipeline before Gold is loaded into BigQuery, so Looker Studio dashboards show clean merchant names. The fraud model deliberately excludes merchant as a feature — dirty names at training time would not generalize to unseen variants at inference time.
 
 **Two pipelines, one model.**
 The batch pipeline trains the fraud model on historical Gold features. The streaming pipeline serves that same model for real-time decisions. MLflow is the bridge: batch registers a new version, FastAPI promotes it without redeployment. This is the standard MLOps pattern at any fintech operating at scale.
