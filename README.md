@@ -50,9 +50,8 @@ flowchart TD
 
     S -->|"publishes event"| KP --> KB --> KC
     S -->|"telemetry"| MG
-    S -.->|"seeds accounts (one-time)"| PG
     KC -->|"POST /predict"| API2
-    KC -->|"writes txn + label + score"| PG
+    KC -->|"writes account + txn + label + score"| PG
 
     PG & MG & FX --> AB --> B
     B --> DBT --> SI --> DBT --> G
