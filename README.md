@@ -39,15 +39,20 @@ flowchart TD
     end
 
     subgraph ANALYTICS["Analytics Layer"]
-        BQ[("BigQuery\npayflow_analytics\ngold tables · clean merchants")]
-        LS["Looker Studio · Tableau · Power BI\nNL query · dashboards"]
+        BQ[("BigQuery\npayflow_analytics\ngold tables · marts · clean merchants")]
     end
 
-    S -->|"writes batch"| PG
-    S -->|"telemetry"| MG
+    LS["Looker Studio"]
+    TB["Tableau"]
+    PB["Power BI"]
+    NLQ["NL query · Gemini in BigQuery"]
+    GRAF["Grafana\nobservability · dashboards"]
+
     S -->|"publishes event"| KP --> KB --> KC
+    S -->|"telemetry"| MG
+    S -.->|"seeds accounts (one-time)"| PG
     KC -->|"POST /predict"| API2
-    KC -->|"inserts score"| PG
+    KC -->|"writes txn + label + score"| PG
 
     PG & MG & FX --> AB --> B
     B --> DBT --> SI --> DBT --> G
@@ -55,7 +60,10 @@ flowchart TD
     G -->|"trains on historical features"| ML
     ML -->|"serves latest model"| API2
 
-    G -->|"normalize merchants"| VEC -->|"clean merchants"| BQ --> LS
+    G -->|"normalize merchants"| VEC -->|"clean merchants"| BQ
+    BQ --> LS & TB & PB & NLQ
+
+    PG & KC -.->|"metrics"| GRAF
 
     PREF["Prefect · hourly orchestration"] -. "triggers" .-> AB & DBT & ML & VEC
 ```
