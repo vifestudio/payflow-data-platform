@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     holder_name     TEXT NOT NULL,
     email           TEXT NOT NULL,
     country         CHAR(2) NOT NULL DEFAULT 'CR',
+    account_type    VARCHAR(20) NOT NULL DEFAULT 'personal',
+    credit_limit    NUMERIC(10, 2) NOT NULL DEFAULT 1000.00,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

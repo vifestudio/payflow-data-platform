@@ -37,6 +37,15 @@ KAFKA_TOPIC = "transactions"
 
 FRAUD_PATTERNS = ["card_testing", "geo_impossible", "amount_anomaly"]
 
+ACCOUNT_TYPES   = ["personal", "business", "premium"]
+ACCOUNT_WEIGHTS = [0.70,       0.20,       0.10]
+
+CREDIT_LIMITS = {
+    "personal": (500,    5_000),
+    "business": (5_000,  50_000),
+    "premium":  (10_000, 100_000),
+}
+
 MERCHANT_VARIANTS = {
     "Amazon":      ["Amazon", "AMAZON.COM", "Amazon.com", "AMZN Marketplace",
                     "Amazon Prime", "amazon.com*Digital", "AMAZON MKTPLACE"],
@@ -106,6 +115,10 @@ def generate_batch(pg_conn, mongo_db, batch_size, kafka_producer=None):
             lat = float(rng.uniform(8.0, 11.5))   # Costa Rica bounding box
             lon = float(rng.uniform(-85.9, -82.5))
 
+        acct_type = random.choices(ACCOUNT_TYPES, weights=ACCOUNT_WEIGHTS, k=1)[0]
+        lo, hi = CREDIT_LIMITS[acct_type]
+        credit_limit = round(float(rng.uniform(lo, hi)), 2)
+
         transactions.append({
             "transaction_id": txn_id,
             "account_id": account_id,
@@ -114,6 +127,8 @@ def generate_batch(pg_conn, mongo_db, batch_size, kafka_producer=None):
             "currency": currency,
             "status": status,
             "created_at": now,
+            "account_type": acct_type,
+            "credit_limit": credit_limit,
         })
 
         telemetry.append({
@@ -139,11 +154,12 @@ def generate_batch(pg_conn, mongo_db, batch_size, kafka_producer=None):
             cur,
             """
             INSERT INTO accounts
-              (account_id, holder_name, email, country)
+              (account_id, holder_name, email, country, account_type, credit_limit)
             VALUES %s
             ON CONFLICT (account_id) DO NOTHING
             """,
-            [(t["account_id"], fake.name(), fake.email(), "CR")
+            [(t["account_id"], fake.name(), fake.email(), "CR",
+              t["account_type"], t["credit_limit"])
              for t in transactions],
         )
         psycopg2.extras.execute_values(
