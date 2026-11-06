@@ -103,7 +103,7 @@ services:
     ports:
       - "8010:8010"
     volumes:
-      - ./ml/model:/app/ml/model:ro
+      - ./ml/model:/ml/model:ro
     environment:
       FRAUD_THRESHOLD: "0.5"
     healthcheck:
