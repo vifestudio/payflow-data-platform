@@ -46,7 +46,11 @@ flowchart TD
     TB["Tableau"]
     PB["Power BI"]
     NLQ["NL query · Gemini in BigQuery"]
-    GRAF["Grafana\nobservability · dashboards"]
+
+    subgraph OPS["Orchestration & Observability"]
+        PREF["Prefect\nhourly orchestration"]
+        GRAF["Grafana\nobservability · dashboards"]
+    end
 
     S -->|"publishes event"| KP --> KB --> KC
     S -->|"telemetry"| MG
@@ -54,17 +58,16 @@ flowchart TD
     KC -->|"writes account + txn + label + score"| PG
 
     PG & MG & FX --> AB --> B
+    B -->|"distinct merchants"| VEC -->|"merchant map"| SI
     B --> DBT --> SI --> DBT --> G
 
     G -->|"trains on historical features"| ML
     ML -->|"serves latest model"| API2
 
-    G -->|"normalize merchants"| VEC -->|"clean merchants"| BQ
-    BQ --> LS & TB & PB & NLQ
+    G --> BQ --> LS & TB & PB & NLQ
 
+    PREF -. "triggers" .-> AB & VEC & DBT & ML
     PG & KC -.->|"metrics"| GRAF
-
-    PREF["Prefect · hourly orchestration"] -. "triggers" .-> AB & DBT & ML & VEC
 ```
 
 The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle — that feedback becomes part of the next training run, closing the loop.
