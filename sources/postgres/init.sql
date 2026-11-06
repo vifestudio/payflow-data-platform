@@ -25,3 +25,14 @@ CREATE TABLE IF NOT EXISTS fraud_labels (
     fraud_pattern   TEXT,
     labeled_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS fraud_scores (
+    transaction_id  UUID PRIMARY KEY REFERENCES transactions(transaction_id) ON DELETE CASCADE,
+    is_fraud        BOOLEAN NOT NULL,
+    probability     NUMERIC(8, 6) NOT NULL,
+    model_version   TEXT NOT NULL DEFAULT '1.0.0',
+    scored_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_fraud_scores_is_fraud  ON fraud_scores(is_fraud);
+CREATE INDEX IF NOT EXISTS idx_fraud_scores_scored_at ON fraud_scores(scored_at);

@@ -1,6 +1,7 @@
+import json
 import os
-import time
 import random
+import time
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -32,6 +33,7 @@ MONGO_URI = (
 )
 FRAUD_RATE = float(os.getenv("SIM_FRAUD_RATE", "0.015"))
 INTERVAL = int(os.getenv("SIM_INTERVAL_SECONDS", "300"))
+KAFKA_TOPIC = "transactions"
 
 FRAUD_PATTERNS = ["card_testing", "geo_impossible", "amount_anomaly"]
 
@@ -80,7 +82,7 @@ def generate_amount(is_fraud, pattern):
     return round(float(rng.lognormal(mean=4.5, sigma=1.2)), 2)
 
 
-def generate_batch(pg_conn, mongo_db, batch_size):
+def generate_batch(pg_conn, mongo_db, batch_size, kafka_producer=None):
     now = datetime.now(timezone.utc)
     transactions = []
     telemetry = []
@@ -171,8 +173,42 @@ def generate_batch(pg_conn, mongo_db, batch_size):
 
     mongo_db.telemetry_events.insert_many(telemetry)
 
+    if kafka_producer:
+        for txn, tel in zip(transactions, telemetry):
+            event = {
+                "transaction_id": txn["transaction_id"],
+                "amount_usd":      txn["amount"],
+                "hour_of_day":     txn["created_at"].hour,
+                "day_of_week":     txn["created_at"].weekday(),
+                "is_weekend":      txn["created_at"].weekday() >= 5,
+                "account_age_days": int(rng.integers(30, 1500)),
+                "latency_ms":      float(tel["latency_ms"]),
+                "account_country": "CR",
+                "device_type":     tel["device_type"],
+                "currency":        txn["currency"],
+            }
+            kafka_producer.send(KAFKA_TOPIC, value=event)
+        kafka_producer.flush()
+
     fraud_count = sum(1 for f in fraud_labels if f["is_fraud"])
     log.info(f"Batch inserted: {batch_size} transactions, {fraud_count} fraud ({fraud_count/batch_size:.1%})")
+
+
+def wait_for_kafka(bootstrap, retries=15, delay=5):
+    from kafka import KafkaProducer
+    for i in range(retries):
+        try:
+            producer = KafkaProducer(
+                bootstrap_servers=bootstrap,
+                value_serializer=lambda v: json.dumps(v, default=str).encode("utf-8"),
+            )
+            log.info("Kafka ready")
+            return producer
+        except Exception as e:
+            log.warning(f"Kafka not ready, retry {i+1}/{retries}: {e}")
+            time.sleep(delay)
+    log.warning("Could not connect to Kafka — running without streaming")
+    return None
 
 
 def wait_for_postgres(dsn, retries=10, delay=5):
@@ -192,11 +228,16 @@ def main():
     mongo_client = MongoClient(MONGO_URI)
     mongo_db = mongo_client[os.getenv("POSTGRES_DB", "techflow")]
 
+    kafka_bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
+    kafka_producer = wait_for_kafka(kafka_bootstrap) if kafka_bootstrap else None
+    if not kafka_producer:
+        log.info("KAFKA_BOOTSTRAP_SERVERS not set — running without Kafka streaming")
+
     log.info(f"Simulator started. Interval: {INTERVAL}s, Fraud rate: {FRAUD_RATE:.1%}")
 
     while True:
         batch_size = max(1, int(10 * hourly_multiplier()))
-        generate_batch(pg_conn, mongo_db, batch_size)
+        generate_batch(pg_conn, mongo_db, batch_size, kafka_producer)
         time.sleep(INTERVAL)
 
 
