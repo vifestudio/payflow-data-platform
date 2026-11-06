@@ -16,11 +16,11 @@ flowchart TD
         KP["Kafka Producer"]
         KB["Kafka Broker\nApache Kafka"]
         KC["Fraud Consumer\nkafka-python"]
-        FSCORE[("fraud_scores\nPostgreSQL")]
+        API2["FastAPI /predict\nfraud scoring service"]
     end
 
     subgraph SOURCES["Operational Sources"]
-        PG[(PostgreSQL\ntransactions · accounts\nfraud_labels)]
+        PG[(PostgreSQL\ntransactions · accounts\nfraud_labels · fraud_scores)]
         MG[(MongoDB\ntelemetry_events)]
         FX["FX Rates API\nFastAPI :8001"]
     end
@@ -34,21 +34,20 @@ flowchart TD
             B --> SI --> G
         end
         DBT["dbt + DuckDB"]
+        VEC["pgvector\nmerchant name normalization\nsentence-transformers embeddings"]
         ML["XGBoost + MLflow\nfraud detection model"]
     end
 
     subgraph ANALYTICS["Analytics Layer"]
-        VEC["pgvector\nmerchant name normalization\nsentence-transformers embeddings"]
-        API2["FastAPI /predict\nfraud scoring service"]
         BQ[("BigQuery\npayflow_analytics\ngold tables · clean merchants")]
-        LS["Looker Studio\ndashboards · reports"]
+        LS["Looker Studio · Tableau · Power BI\nNL query · dashboards"]
     end
 
     S -->|"writes batch"| PG
     S -->|"telemetry"| MG
     S -->|"publishes event"| KP --> KB --> KC
     KC -->|"POST /predict"| API2
-    KC -->|"inserts score"| FSCORE
+    KC -->|"inserts score"| PG
 
     PG & MG & FX --> AB --> B
     B --> DBT --> SI --> DBT --> G
@@ -56,7 +55,7 @@ flowchart TD
     G -->|"trains on historical features"| ML
     ML -->|"serves latest model"| API2
 
-    G -->|"normalize merchants"| VEC --> BQ --> LS
+    G -->|"normalize merchants"| VEC -->|"clean merchants"| BQ --> LS
 
     PREF["Prefect · hourly orchestration"] -. "triggers" .-> AB & DBT & ML & VEC
 ```
