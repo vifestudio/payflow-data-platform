@@ -27,6 +27,10 @@ SELECT
     END                                                                 AS amount_usd,
     TRIM(t.merchant)                                                    AS merchant,
     COALESCE(m.canonical_merchant, TRIM(t.merchant))                    AS merchant_clean,
+    mcc.mcc_code,
+    mcc.mcc_description,
+    mcc.mcc_category,
+    mcc.risk_tier,
     LOWER(TRIM(t.status))                                               AS status,
     a.country                                                           AS account_country,
     t.created_at::DATE                                                  AS transaction_date,
@@ -48,6 +52,8 @@ LEFT JOIN {{ ref('stg_accounts') }} a
     ON t.account_id = a.account_id
 LEFT JOIN {{ ref('stg_merchant_map') }} m
     ON TRIM(t.merchant) = m.raw_merchant
+LEFT JOIN {{ ref('merchant_mcc') }} mcc
+    ON COALESCE(m.canonical_merchant, TRIM(t.merchant)) = mcc.canonical_merchant
 {% if is_incremental() %}
 WHERE t.created_at > (SELECT MAX(created_at) FROM {{ this }})
 {% endif %}

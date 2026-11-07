@@ -20,6 +20,16 @@ on-run-start:
   - "INSTALL httpfs; LOAD httpfs;"
   - "{{ setup_r2_secret() }}"
 
+seeds:
+  payflow:
+    merchant_mcc:
+      +column_types:
+        mcc_code: varchar(4)
+        canonical_merchant: varchar(50)
+        mcc_description: varchar(100)
+        mcc_category: varchar(50)
+        risk_tier: varchar(20)
+
 models:
   payflow:
     staging:
