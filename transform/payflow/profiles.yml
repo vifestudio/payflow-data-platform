@@ -1,0 +1,16 @@
+payflow:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "dev.duckdb"
+      threads: 4
+      extensions:
+        - httpfs
+      settings:
+        s3_endpoint: "{{ env_var('R2_ENDPOINT') | replace('https://', '') }}"
+        s3_access_key_id: "{{ env_var('R2_ACCESS_KEY_ID') }}"
+        s3_secret_access_key: "{{ env_var('R2_SECRET_ACCESS_KEY') }}"
+        s3_region: "us-east-1"
+        s3_use_ssl: "true"
+        s3_url_style: "path"

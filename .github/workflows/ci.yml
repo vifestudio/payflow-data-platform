@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  dbt-parse:
+    name: Validate SQL & YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dbt
+        run: pip install dbt-duckdb==1.9.1
+
+      - name: dbt parse (no credentials needed)
+        working-directory: transform/payflow
+        run: dbt parse --profiles-dir .
+        env:
+          R2_ENDPOINT: "https://placeholder.r2.cloudflarestorage.com"
+          R2_ACCESS_KEY_ID: "placeholder"
+          R2_SECRET_ACCESS_KEY: "placeholder"
+
+  dbt-test:
+    name: Run dbt tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: dbt-parse
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dbt
+        run: pip install dbt-duckdb==1.9.1
+
+      - name: dbt seed
+        working-directory: transform/payflow
+        run: dbt seed --profiles-dir .
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
+      - name: dbt run
+        working-directory: transform/payflow
+        run: dbt run --profiles-dir .
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
+      - name: dbt test
+        working-directory: transform/payflow
+        run: dbt test --profiles-dir .
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
