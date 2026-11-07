@@ -1,11 +1,20 @@
 """
-One-shot bulk seed: generates N transactions distributed across the last 90 days.
+One-shot bulk seed: generates N transactions distributed across the last 365 days.
 Realistic fintech patterns for ML training and pgvector merchant deduplication.
 
-Fraud patterns implemented:
+Fraud is correlated with merchant category, hour of day, and account age:
+  - gaming / tech / streaming: highest fraud risk (card-not-present, automated bots)
+  - food / gas: lowest risk (physical POS, chip+pin)
+  - night hours (0-5am UTC): 2.5x multiplier (automated fraud runs while humans sleep)
+  - new accounts (<90 days): 2-3x multiplier (mule accounts opened for fraud)
+
+Fraud patterns:
   card_testing   - burst of 10-20 small transactions from same account in <5 min
   geo_impossible - same account transacts in CR and far-away country within 15 min
   amount_anomaly - single outlier amount via lognormal high-mean distribution
+
+Pattern is biased by category: gaming/tech/streaming -> card_testing,
+travel -> geo_impossible, others -> random.
 
 Usage:
     docker compose exec simulator python bulk_seed.py --rows 100000
@@ -43,9 +52,10 @@ MONGO_URI = (
     f"@mongo:{os.getenv('MONGO_PORT', '27017')}/?authSource=admin"
 )
 
-FRAUD_RATE  = float(os.getenv("SIM_FRAUD_RATE", "0.015"))
-DAYS_BACK   = 365
-BATCH_SIZE  = 500
+FRAUD_RATE        = float(os.getenv("SIM_FRAUD_RATE", "0.015"))
+MAX_FRAUD_RATE    = 0.25   # cap so no single segment exceeds 25%
+DAYS_BACK         = 365
+BATCH_SIZE        = 500
 ACCOUNT_POOL_SIZE = 3000
 
 ACCOUNT_TYPES   = ["personal", "business", "premium"]
@@ -93,6 +103,18 @@ MERCHANT_CATEGORY = {
     "Steam":       "gaming",
 }
 
+# Fraud likelihood multiplier per merchant category (baseline = retail = 1.0)
+CATEGORY_MULTIPLIER = {
+    "gaming":    3.0,   # Steam: automated card testing, stolen card inventory
+    "tech":      2.5,   # Apple: CNP fraud on digital goods, no physical verification
+    "streaming": 2.0,   # Netflix/Spotify: credential stuffing, account sharing schemes
+    "travel":    1.8,   # Airbnb: high-value bookings, geo-inconsistent transactions
+    "retail":    1.0,   # Amazon/Walmart: baseline — mixed physical/digital risk
+    "transport": 0.7,   # Uber: GPS-verified trips, partial physical check
+    "food":      0.4,   # McDonald's: low-value, in-person POS, tap-to-pay
+    "gas":       0.3,   # Shell: physical pump, chip+pin, low-value fills
+}
+
 # (lat, lon) for geo_impossible second transaction - physically far from Costa Rica
 GEO_IMPOSSIBLE_LOCATIONS = [
     (51.509865, -0.118092),   # London
@@ -123,11 +145,11 @@ def pick_dirty_merchant():
 
 
 def random_timestamp_with_peaks():
-    """Distribute over last 90 days with realistic daily peaks."""
+    """Distribute over last DAYS_BACK days with realistic daily peaks."""
     day_offset = random.randint(0, DAYS_BACK - 1)
     base = datetime.now(timezone.utc) - timedelta(days=day_offset)
 
-    # Build weighted hour bucket: peaks at 9-11am and 7-9pm UTC
+    # Weighted hour bucket: peaks at 9-11am and 7-9pm UTC
     hour_weights = []
     for h in range(24):
         if 9 <= h <= 11 or 19 <= h <= 21:
@@ -146,12 +168,48 @@ def random_timestamp_with_peaks():
 def generate_amount(is_fraud, pattern):
     if is_fraud and pattern == "amount_anomaly":
         return round(float(rng.lognormal(mean=8.0, sigma=0.5)), 2)
-    # Normal: lognormal centered around ~$90 (mean=4.5 on log scale)
     return round(float(rng.lognormal(mean=4.5, sigma=1.2)), 2)
 
 
+def fraud_probability(canonical, hour=12, account_age_days=365):
+    """
+    Return per-transaction fraud probability biased by merchant category,
+    time of day, and account age. All three factors compound, capped at MAX_FRAUD_RATE.
+    """
+    cat = MERCHANT_CATEGORY.get(canonical, "retail")
+    p = FRAUD_RATE * CATEGORY_MULTIPLIER.get(cat, 1.0)
+
+    # Night hours: automated fraud bots run while humans aren't watching
+    if 0 <= hour <= 5:
+        p *= 2.5
+
+    # Account age: mule accounts are opened specifically for fraud runs
+    if account_age_days < 30:
+        p *= 3.0
+    elif account_age_days < 90:
+        p *= 2.0
+    elif account_age_days < 365:
+        p *= 1.2
+    else:
+        p *= 0.8   # established accounts are lower risk
+
+    return min(p, MAX_FRAUD_RATE)
+
+
+def category_pattern_for(canonical):
+    """Select fraud pattern biased by merchant category."""
+    cat = MERCHANT_CATEGORY.get(canonical, "retail")
+    if cat in ("gaming", "tech", "streaming"):
+        # Digital goods: bots test stolen card numbers in small batches
+        return random.choices(["card_testing", "amount_anomaly"], weights=[0.75, 0.25])[0]
+    if cat == "travel":
+        # High-value bookings often look like geo-impossible scenarios
+        return random.choices(["geo_impossible", "amount_anomaly"], weights=[0.65, 0.35])[0]
+    return random.choice(["card_testing", "geo_impossible", "amount_anomaly"])
+
+
 def build_account_pool(pg_conn, size):
-    """Pre-generate a pool of persistent accounts."""
+    """Pre-generate a pool of persistent accounts. Returns list of {account_id, account_age_days}."""
     accounts = []
     for _ in range(size):
         days_ago = random.randint(0, 730)
@@ -161,6 +219,7 @@ def build_account_pool(pg_conn, size):
         credit_limit = round(float(rng.uniform(lo, hi)), 2)
         accounts.append({
             "account_id": fake.uuid4(),
+            "account_age_days": days_ago,
             "holder_name": fake.name(),
             "email": fake.email(),
             "country": "CR",
@@ -179,13 +238,14 @@ def build_account_pool(pg_conn, size):
               for a in accounts])
     pg_conn.commit()
     log.info(f"Account pool of {size} accounts created")
-    return [a["account_id"] for a in accounts]
+    return [{"account_id": a["account_id"], "account_age_days": a["account_age_days"]} for a in accounts]
 
 
-def build_normal_transaction(account_id, is_fraud, pattern):
-    canonical, dirty = pick_dirty_merchant()
-    base_time = random_timestamp_with_peaks()
-    status = pick_status()
+def build_normal_transaction(account_id, is_fraud, pattern, canonical=None, dirty=None, base_time=None):
+    if canonical is None or dirty is None:
+        canonical, dirty = pick_dirty_merchant()
+    if base_time is None:
+        base_time = random_timestamp_with_peaks()
 
     if is_fraud and pattern == "geo_impossible":
         lat = float(rng.uniform(8.0, 11.5))
@@ -199,7 +259,7 @@ def build_normal_transaction(account_id, is_fraud, pattern):
     currency = random.choice(CURRENCIES)
 
     return {
-        "txn": (txn_id, account_id, dirty, amount, currency, status, base_time),
+        "txn": (txn_id, account_id, dirty, amount, currency, pick_status(), base_time),
         "tel": {
             "transaction_id": txn_id,
             "device_type": random.choice(["mobile", "desktop", "tablet"]),
@@ -319,11 +379,21 @@ def seed(total_rows):
 
     while inserted < total_rows:
         remaining = total_rows - inserted
-        account_id = random.choice(account_pool)
-        is_fraud = random.random() < FRAUD_RATE
+
+        # Pick account, merchant, and timestamp BEFORE the fraud decision so the
+        # probability can be biased by all three dimensions.
+        acct = random.choice(account_pool)
+        account_id = acct["account_id"]
+        account_age_days = acct["account_age_days"]
+
+        canonical, dirty = pick_dirty_merchant()
+        base_time = random_timestamp_with_peaks()
+
+        p_fraud = fraud_probability(canonical, base_time.hour, account_age_days)
+        is_fraud = random.random() < p_fraud
 
         if is_fraud:
-            pattern = random.choice(["card_testing", "geo_impossible", "amount_anomaly"])
+            pattern = category_pattern_for(canonical)
 
             if pattern == "card_testing" and remaining >= 10:
                 rows = build_card_testing_burst(account_id)
@@ -331,9 +401,15 @@ def seed(total_rows):
                 rows = build_geo_impossible_pair(account_id)
             else:
                 pattern = "amount_anomaly"
-                rows = [build_normal_transaction(account_id, True, pattern)]
+                rows = [build_normal_transaction(
+                    account_id, True, pattern,
+                    canonical=canonical, dirty=dirty, base_time=base_time,
+                )]
         else:
-            rows = [build_normal_transaction(account_id, False, None)]
+            rows = [build_normal_transaction(
+                account_id, False, None,
+                canonical=canonical, dirty=dirty, base_time=base_time,
+            )]
 
         for r in rows:
             transactions.append(r["txn"])
@@ -347,7 +423,7 @@ def seed(total_rows):
 
         if len(transactions) >= BATCH_SIZE:
             flush_batch(pg_conn, mongo_db, transactions, telemetry, fraud_labels)
-            log.info(f"Progress: {inserted}/{total_rows} ({fraud_total} fraud)")
+            log.info(f"Progress: {inserted}/{total_rows} ({fraud_total} fraud, {fraud_total/inserted:.1%})")
             transactions, telemetry, fraud_labels = [], [], []
 
     if transactions:

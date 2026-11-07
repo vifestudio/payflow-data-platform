@@ -61,10 +61,53 @@ MERCHANT_VARIANTS = {
                     "store.steampowered", "Steam Digital"],
 }
 
+MERCHANT_CATEGORY = {
+    "Amazon":      "retail",
+    "Uber":        "transport",
+    "Netflix":     "streaming",
+    "Spotify":     "streaming",
+    "Apple":       "tech",
+    "Walmart":     "retail",
+    "McDonald's":  "food",
+    "Shell":       "gas",
+    "Airbnb":      "travel",
+    "Steam":       "gaming",
+}
+
+CATEGORY_MULTIPLIER = {
+    "gaming":    3.0,
+    "tech":      2.5,
+    "streaming": 2.0,
+    "travel":    1.8,
+    "retail":    1.0,
+    "transport": 0.7,
+    "food":      0.4,
+    "gas":       0.3,
+}
+
+MAX_FRAUD_RATE = 0.25
+
 CURRENCIES = ["USD", "EUR", "GBP", "CRC", "MXN"]
 
 STATUS_CHOICES = ["confirmed", "declined", "pending"]
 STATUS_PROBS   = [0.85, 0.10, 0.05]
+
+
+def fraud_probability(canonical, hour=12, account_age_days=365):
+    """Fraud probability biased by merchant category, hour, and account age."""
+    cat = MERCHANT_CATEGORY.get(canonical, "retail")
+    p = FRAUD_RATE * CATEGORY_MULTIPLIER.get(cat, 1.0)
+    if 0 <= hour <= 5:
+        p *= 2.5
+    if account_age_days < 30:
+        p *= 3.0
+    elif account_age_days < 90:
+        p *= 2.0
+    elif account_age_days < 365:
+        p *= 1.2
+    else:
+        p *= 0.8
+    return min(p, MAX_FRAUD_RATE)
 
 
 def hourly_multiplier():
@@ -92,11 +135,25 @@ def generate_batch(mongo_db, batch_size, kafka_producer=None):
     for _ in range(batch_size):
         txn_id = str(fake.uuid4())
         account_id = str(fake.uuid4())
-        is_fraud = random.random() < FRAUD_RATE
-        pattern = random.choice(FRAUD_PATTERNS) if is_fraud else None
-        amount = generate_amount(is_fraud, pattern)
+        # Pick merchant and account age BEFORE the fraud decision so probability
+        # is biased by the same dimensions as the historical seed.
         canonical = random.choice(list(MERCHANT_VARIANTS.keys()))
         merchant = random.choice(MERCHANT_VARIANTS[canonical])
+        account_age_days = int(rng.integers(1, 730))
+        p_fraud = fraud_probability(canonical, now.hour, account_age_days)
+        is_fraud = random.random() < p_fraud
+        # Pattern biased by category: gaming/tech -> card_testing, travel -> geo_impossible
+        if is_fraud:
+            cat = MERCHANT_CATEGORY.get(canonical, "retail")
+            if cat in ("gaming", "tech", "streaming"):
+                pattern = random.choices(["card_testing", "amount_anomaly"], weights=[0.75, 0.25])[0]
+            elif cat == "travel":
+                pattern = random.choices(["geo_impossible", "amount_anomaly"], weights=[0.65, 0.35])[0]
+            else:
+                pattern = random.choice(FRAUD_PATTERNS)
+        else:
+            pattern = None
+        amount = generate_amount(is_fraud, pattern)
         currency = random.choice(CURRENCIES)
         status = random.choices(STATUS_CHOICES, weights=STATUS_PROBS, k=1)[0]
 
@@ -113,7 +170,6 @@ def generate_batch(mongo_db, batch_size, kafka_producer=None):
 
         device_type = random.choice(["mobile", "desktop", "tablet"])
         latency_ms = int(rng.integers(80, 2000))
-        account_age_days = int(rng.integers(30, 1500))
         if is_fraud:
             fraud_count += 1
 
