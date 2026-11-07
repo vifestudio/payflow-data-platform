@@ -1,0 +1,982 @@
+mcc_code,description,mcc_category,risk_tier
+0742,Veterinary Services,misc,medium
+0763,Agricultural Co-operatives,misc,medium
+0780,Horticultural Services  Landscaping Services,misc,medium
+1520,General Contractors-Residential and Commercial,misc,medium
+1711,Air Conditioning Contractors â€“ Sales and Installation  Heating Contractors â€“ Sales  Service  Installation,misc,medium
+1731,Electrical Contractors,misc,medium
+1740,Insulation â€“ Contractors  Masonry  Stonework Contractors  Plastering Contractors  Stonework and Masonry Contractors  Tile Settings Contractors,misc,medium
+1750,Carpentry Contractors,misc,medium
+1761,Roofing â€“ Contractors  Sheet Metal Work â€“ Contractors  Siding â€“ Contractors,misc,medium
+1771,Contractors â€“ Concrete Work,misc,medium
+1799,Contractors â€“ Special Trade  Not Elsewhere Classified,misc,medium
+2741,Miscellaneous Publishing and Printing,misc,medium
+2791,Typesetting  Plate Making  & Related Services,misc,medium
+2842,Specialty Cleaning  Polishing  and Sanitation Preparations,misc,medium
+3000,UNITED AIRLINES,airlines,high
+3001,AMERICAN AIRLINES,airlines,high
+3002,PAN AMERICAN,airlines,high
+3003,Airlines,airlines,high
+3004,TRANS WORLD AIRLINES,airlines,high
+3005,BRITISH AIRWAYS,airlines,high
+3006,JAPAN AIRLINES,airlines,high
+3007,AIR FRANCE,airlines,high
+3008,LUFTHANSA,airlines,high
+3009,AIR CANADA,airlines,high
+3010,KLM (ROYAL DUTCH AIRLINES),airlines,high
+3011,AEORFLOT,airlines,high
+3012,QANTAS,airlines,high
+3013,ALITALIA,airlines,high
+3014,SAUDIA ARABIAN AIRLINES,airlines,high
+3015,SWISSAIR,airlines,high
+3016,SAS,airlines,high
+3017,SOUTH AFRICAN AIRWAYS,airlines,high
+3018,VARIG (BRAZIL),airlines,high
+3019,Airlines,airlines,high
+3020,AIR-INDIA,airlines,high
+3021,AIR ALGERIE,airlines,high
+3022,PHILIPPINE AIRLINES,airlines,high
+3023,MEXICANA,airlines,high
+3024,PAKISTAN INTERNATIONAL,airlines,high
+3025,AIR NEW ZEALAND,airlines,high
+3026,Airlines,airlines,high
+3027,UTA/INTERAIR,airlines,high
+3028,AIR MALTA,airlines,high
+3029,SABENA,airlines,high
+3030,AEROLINEAS ARGENTINAS,airlines,high
+3031,OLYMPIC AIRWAYS,airlines,high
+3032,EL AL,airlines,high
+3033,ANSETT AIRLINES,airlines,high
+3034,AUSTRAINLIAN AIRLINES,airlines,high
+3035,TAP (PORTUGAL),airlines,high
+3036,VASP (BRAZIL),airlines,high
+3037,EGYPTAIR,airlines,high
+3038,KUWAIT AIRLINES,airlines,high
+3039,AVIANCA,airlines,high
+3040,GULF AIR (BAHRAIN),airlines,high
+3041,BALKAN-BULGARIAN AIRLINES,airlines,high
+3042,FINNAIR,airlines,high
+3043,AER LINGUS,airlines,high
+3044,AIR LANKA,airlines,high
+3045,NIGERIA AIRWAYS,airlines,high
+3046,CRUZEIRO DO SUL (BRAZIJ),airlines,high
+3047,THY (TURKEY),airlines,high
+3048,ROYAL AIR MAROC,airlines,high
+3049,TUNIS AIR,airlines,high
+3050,ICELANDAIR,airlines,high
+3051,AUSTRIAN AIRLINES,airlines,high
+3052,LANCHILE,airlines,high
+3053,AVIACO (SPAIN),airlines,high
+3054,LADECO (CHILE),airlines,high
+3055,LAB (BOLIVIA),airlines,high
+3056,QUEBECAIRE,airlines,high
+3057,EASTWEST AIRLINES (AUSTRALIA),airlines,high
+3058,DELTA,airlines,high
+3059,Airlines,airlines,high
+3060,NORTHWEST,airlines,high
+3061,CONTINENTAL,airlines,high
+3062,WESTERN,airlines,high
+3063,US AIR,airlines,high
+3064,Airlines,airlines,high
+3065,AIRINTER,airlines,high
+3066,SOUTHWEST,airlines,high
+3067,Airlines,airlines,high
+3068,Airlines,airlines,high
+3069,SUN COUNTRY AIRLINES,airlines,high
+3070,Airlines,airlines,high
+3071,AIR BRITISH COLUBIA,airlines,high
+3072,Airlines,airlines,high
+3073,Airlines,airlines,high
+3074,Airlines,airlines,high
+3075,SINGAPORE AIRLINES,airlines,high
+3076,AEROMEXICO,airlines,high
+3077,THAI AIRWAYS,airlines,high
+3078,CHINA AIRLINES,airlines,high
+3079,Airlines,airlines,high
+3080,Airlines,airlines,high
+3081,NORDAIR,airlines,high
+3082,KOREAN AIRLINES,airlines,high
+3083,AIR AFRIGUE,airlines,high
+3084,EVA AIRLINES,airlines,high
+3085,MIDWEST EXPRESS AIRLINES  INC.,airlines,high
+3086,Airlines,airlines,high
+3087,METRO AIRLINES,airlines,high
+3088,CROATIA AIRLINES,airlines,high
+3089,TRANSAERO,airlines,high
+3090,Airlines,airlines,high
+3091,Airlines,airlines,high
+3092,Airlines,airlines,high
+3093,Airlines,airlines,high
+3094,ZAMBIA AIRWAYS,airlines,high
+3095,Airlines,airlines,high
+3096,AIR ZIMBABWE,airlines,high
+3097,Airlines,airlines,high
+3098,Airlines,airlines,high
+3099,CATHAY PACIFIC,airlines,high
+3100,MALAYSIAN AIRLINE SYSTEM,airlines,high
+3101,Airlines,airlines,high
+3102,IBERIA,airlines,high
+3103,GARUDA (INDONESIA),airlines,high
+3104,Airlines,airlines,high
+3105,Airlines,airlines,high
+3106,BRAATHENS S.A.F.E. (NORWAY),airlines,high
+3107,Airlines,airlines,high
+3108,Airlines,airlines,high
+3109,Airlines,airlines,high
+3110,WINGS AIRWAYS,airlines,high
+3111,BRITISH MIDLAND,airlines,high
+3112,WINDWARD ISLAND,airlines,high
+3113,Airlines,airlines,high
+3114,Airlines,airlines,high
+3115,Airlines,airlines,high
+3116,Airlines,airlines,high
+3117,VIASA,airlines,high
+3118,VALLEY AIRLINES,airlines,high
+3119,Airlines,airlines,high
+3120,Airlines,airlines,high
+3121,Airlines,airlines,high
+3122,Airlines,airlines,high
+3123,Airlines,airlines,high
+3124,Airlines,airlines,high
+3125,TAN,airlines,high
+3126,TALAIR,airlines,high
+3127,TACA INTERNATIONAL,airlines,high
+3128,Airlines,airlines,high
+3129,SURINAM AIRWAYS,airlines,high
+3130,SUN WORLD INTERNATIONAL,airlines,high
+3131,Airlines,airlines,high
+3132,Airlines,airlines,high
+3133,SUNBELT AIRLINES,airlines,high
+3134,Airlines,airlines,high
+3135,SUDAN AIRWAYS,airlines,high
+3136,Airlines,airlines,high
+3137,SINGLETON,airlines,high
+3138,SIMMONS AIRLINES,airlines,high
+3139,Airlines,airlines,high
+3140,Airlines,airlines,high
+3141,Airlines,airlines,high
+3142,Airlines,airlines,high
+3143,SCENIC AIRLINES,airlines,high
+3144,VIRGIN ATLANTIC,airlines,high
+3145,SAN JUAN AIRLINES,airlines,high
+3146,LUXAIR,airlines,high
+3147,Airlines,airlines,high
+3148,Airlines,airlines,high
+3149,Airlines,airlines,high
+3150,Airlines,airlines,high
+3151,AIR ZAIRE,airlines,high
+3152,Airlines,airlines,high
+3153,Airlines,airlines,high
+3154,PRINCEVILLE,airlines,high
+3155,Airlines,airlines,high
+3156,Airlines,airlines,high
+3157,Airlines,airlines,high
+3158,Airlines,airlines,high
+3159,PBA,airlines,high
+3160,Airlines,airlines,high
+3161,ALL NIPPON AIRWAYS,airlines,high
+3162,Airlines,airlines,high
+3163,Airlines,airlines,high
+3164,NORONTAIR,airlines,high
+3165,NEW YORK HELICOPTER,airlines,high
+3166,Airlines,airlines,high
+3167,Airlines,airlines,high
+3168,Airlines,airlines,high
+3169,Airlines,airlines,high
+3170,NOUNT COOK,airlines,high
+3171,CANADIAN AIRLINES INTERNATIONAL,airlines,high
+3172,NATIONAIR,airlines,high
+3173,Airlines,airlines,high
+3174,Airlines,airlines,high
+3175,Airlines,airlines,high
+3176,METROFLIGHT AIRLINES,airlines,high
+3177,Airlines,airlines,high
+3178,MESA AIR,airlines,high
+3179,Airlines,airlines,high
+3180,Airlines,airlines,high
+3181,MALEV,airlines,high
+3182,LOT (POLAND),airlines,high
+3183,Airlines,airlines,high
+3184,LIAT,airlines,high
+3185,LAV (VENEZUELA),airlines,high
+3186,LAP (PARAGUAY),airlines,high
+3187,LACSA (COSTA RICA),airlines,high
+3188,Airlines,airlines,high
+3189,Airlines,airlines,high
+3190,JUGOSLAV AIR,airlines,high
+3191,ISLAND AIRLINES,airlines,high
+3192,IRAN AIR,airlines,high
+3193,INDIAN AIRLINES,airlines,high
+3194,Airlines,airlines,high
+3195,Airlines,airlines,high
+3196,HAWAIIAN AIR,airlines,high
+3197,HAVASU AIRLINES,airlines,high
+3198,Airlines,airlines,high
+3199,Airlines,airlines,high
+3200,FUYANA AIRWAYS,airlines,high
+3201,Airlines,airlines,high
+3202,Airlines,airlines,high
+3203,GOLDEN PACIFIC AIR,airlines,high
+3204,FREEDOM AIR,airlines,high
+3205,Airlines,airlines,high
+3206,Airlines,airlines,high
+3207,Airlines,airlines,high
+3208,Airlines,airlines,high
+3209,Airlines,airlines,high
+3210,Airlines,airlines,high
+3211,Airlines,airlines,high
+3212,DOMINICANA,airlines,high
+3213,Airlines,airlines,high
+3214,Airlines,airlines,high
+3215,DAN AIR SERVICES,airlines,high
+3216,CUMBERLAND AIRLINES,airlines,high
+3217,CSA,airlines,high
+3218,CROWN AIR,airlines,high
+3219,COPA,airlines,high
+3220,COMPANIA FAUCETT,airlines,high
+3221,TRANSPORTES AEROS MILITARES ECCUATORANOS,airlines,high
+3222,COMMAND AIRWAYS,airlines,high
+3223,COMAIR,airlines,high
+3224,Airlines,airlines,high
+3225,Airlines,airlines,high
+3226,Airlines,airlines,high
+3227,Airlines,airlines,high
+3228,CAYMAN AIRWAYS,airlines,high
+3229,SAETA SOCIAEDAD ECUATORIANOS DE TRANSPORTES AEREOS,airlines,high
+3230,Airlines,airlines,high
+3231,SASHA SERVICIO AERO DE HONDURAS,airlines,high
+3232,Airlines,airlines,high
+3233,CAPITOL AIR,airlines,high
+3234,BWIA,airlines,high
+3235,BROKWAY AIR,airlines,high
+3236,Airlines,airlines,high
+3237,Airlines,airlines,high
+3238,BEMIDJI AIRLINES,airlines,high
+3239,BAR HARBOR AIRLINES,airlines,high
+3240,BAHAMASAIR,airlines,high
+3241,AVIATECA (GUATEMALA),airlines,high
+3242,AVENSA,airlines,high
+3243,AUSTRIAN AIR SERVICE,airlines,high
+3244,Airlines,airlines,high
+3245,Airlines,airlines,high
+3246,Airlines,airlines,high
+3247,Airlines,airlines,high
+3248,Airlines,airlines,high
+3249,Airlines,airlines,high
+3250,Airlines,airlines,high
+3251,ALOHA AIRLINES,airlines,high
+3252,ALM,airlines,high
+3253,AMERICA WEST,airlines,high
+3254,TRUMP AIRLINE,airlines,high
+3255,Airlines,airlines,high
+3256,ALASKA AIRLINES,airlines,high
+3257,Airlines,airlines,high
+3258,Airlines,airlines,high
+3259,AMERICAN TRANS AIR,airlines,high
+3260,Airlines,airlines,high
+3261,AIR CHINA,airlines,high
+3262,RENO AIR  INC.,airlines,high
+3263,Airlines,airlines,high
+3264,Airlines,airlines,high
+3265,Airlines,airlines,high
+3266,AIR SEYCHELLES,airlines,high
+3267,AIR PANAMA,airlines,high
+3268,Airlines,airlines,high
+3269,Airlines,airlines,high
+3270,Airlines,airlines,high
+3271,Airlines,airlines,high
+3272,Airlines,airlines,high
+3273,Airlines,airlines,high
+3274,Airlines,airlines,high
+3275,Airlines,airlines,high
+3276,Airlines,airlines,high
+3277,Airlines,airlines,high
+3278,Airlines,airlines,high
+3279,Airlines,airlines,high
+3280,AIR JAMAICA,airlines,high
+3281,Airlines,airlines,high
+3282,AIR DJIBOUTI,airlines,high
+3283,Airlines,airlines,high
+3284,AERO VIRGIN ISLANDS,airlines,high
+3285,AERO PERU,airlines,high
+3286,AEROLINEAS NICARAGUENSIS,airlines,high
+3287,AERO COACH AVAIATION,airlines,high
+3288,Airlines,airlines,high
+3289,Airlines,airlines,high
+3290,Airlines,airlines,high
+3291,ARIANA AFGHAN,airlines,high
+3292,CYPRUS AIRWAYS,airlines,high
+3293,ECUATORIANA,airlines,high
+3294,ETHIOPIAN AIRLINES,airlines,high
+3295,KENYA AIRLINES,airlines,high
+3296,Airlines,airlines,high
+3297,Airlines,airlines,high
+3298,AIR MAURITIUS,airlines,high
+3299,WIDEROâ€™S FLYVESELSKAP,airlines,high
+3351,AFFILIATED AUTO RENTAL,lodging,high
+3352,AMERICAN INTL RENT-A-CAR,lodging,high
+3353,BROOKS RENT-A-CAR,lodging,high
+3354,ACTION AUTO RENTAL,lodging,high
+3355,Car Rental,lodging,high
+3356,Car Rental,lodging,high
+3357,HERTZ RENT-A-CAR,lodging,high
+3358,Car Rental,lodging,high
+3359,PAYLESS CAR RENTAL,lodging,high
+3360,SNAPPY CAR RENTAL,lodging,high
+3361,AIRWAYS RENT-A-CAR,lodging,high
+3362,ALTRA AUTO RENTAL,lodging,high
+3363,Car Rental,lodging,high
+3364,AGENCY RENT-A-CAR,lodging,high
+3365,Car Rental,lodging,high
+3366,BUDGET RENT-A-CAR,lodging,high
+3367,Car Rental,lodging,high
+3368,HOLIDAY RENT-A-WRECK,lodging,high
+3369,Car Rental,lodging,high
+3370,RENT-A-WRECK,lodging,high
+3371,Car Rental,lodging,high
+3372,Car Rental,lodging,high
+3373,Car Rental,lodging,high
+3374,Car Rental,lodging,high
+3375,Car Rental,lodging,high
+3376,AJAX RENT-A-CAR,lodging,high
+3377,Car Rental,lodging,high
+3378,Car Rental,lodging,high
+3379,Car Rental,lodging,high
+3380,Car Rental,lodging,high
+3381,EUROP CAR,lodging,high
+3382,Car Rental,lodging,high
+3383,Car Rental,lodging,high
+3384,Car Rental,lodging,high
+3385,TROPICAL RENT-A-CAR,lodging,high
+3386,SHOWCASE RENTAL CARS,lodging,high
+3387,ALAMO RENT-A-CAR,lodging,high
+3388,Car Rental,lodging,high
+3389,AVIS RENT-A-CAR,lodging,high
+3390,DOLLAR RENT-A-CAR,lodging,high
+3391,EUROPE BY CAR,lodging,high
+3392,Car Rental,lodging,high
+3393,NATIONAL CAR RENTAL,lodging,high
+3394,KEMWELL GROUP RENT-A-CAR,lodging,high
+3395,THRIFTY RENT-A-CAR,lodging,high
+3396,TILDEN TENT-A-CAR,lodging,high
+3397,Car Rental,lodging,high
+3398,ECONO-CAR RENT-A-CAR,lodging,high
+3399,Car Rental,lodging,high
+3400,AUTO HOST COST CAR RENTALS,lodging,high
+3401,Car Rental,lodging,high
+3402,Car Rental,lodging,high
+3403,Car Rental,lodging,high
+3404,Car Rental,lodging,high
+3405,ENTERPRISE RENT-A-CAR,lodging,high
+3406,Car Rental,lodging,high
+3407,Car Rental,lodging,high
+3408,Car Rental,lodging,high
+3409,GENERAL RENT-A-CAR,lodging,high
+3410,Car Rental,lodging,high
+3411,Car Rental,lodging,high
+3412,A-1 RENT-A-CAR,lodging,high
+3413,Car Rental,lodging,high
+3414,GODFREY NATL RENT-A-CAR,lodging,high
+3415,Car Rental,lodging,high
+3416,Car Rental,lodging,high
+3417,Car Rental,lodging,high
+3418,Car Rental,lodging,high
+3419,ALPHA RENT-A-CAR,lodging,high
+3420,ANSA INTL RENT-A-CAR,lodging,high
+3421,ALLSTAE RENT-A-CAR,lodging,high
+3422,Car Rental,lodging,high
+3423,AVCAR RENT-A-CAR,lodging,high
+3424,Car Rental,lodging,high
+3425,AUTOMATE RENT-A-CAR,lodging,high
+3426,Car Rental,lodging,high
+3427,AVON RENT-A-CAR,lodging,high
+3428,CAREY RENT-A-CAR,lodging,high
+3429,INSURANCE RENT-A-CAR,lodging,high
+3430,MAJOR RENT-A-CAR,lodging,high
+3431,REPLACEMENT RENT-A-CAR,lodging,high
+3432,RESERVE RENT-A-CAR,lodging,high
+3433,UGLY DUCKLING RENT-A-CAR,lodging,high
+3434,USA RENT-A-CAR,lodging,high
+3435,VALUE RENT-A-CAR,lodging,high
+3436,AUTOHANSA RENT-A-CAR,lodging,high
+3437,CITE RENT-A-CAR,lodging,high
+3438,INTERENT RENT-A-CAR,lodging,high
+3439,MILLEVILLE RENT-A-CAR,lodging,high
+3440,VIA ROUTE RENT-A-CAR,lodging,high
+3441,Car Rental,lodging,high
+3501,HOLIDAY INNS  HOLIDAY INN EXPRESS,car_rental,high
+3502,BEST WESTERN HOTELS,car_rental,high
+3503,SHERATON HOTELS,car_rental,high
+3504,HILTON HOTELS,car_rental,high
+3505,FORTE HOTELS,car_rental,high
+3506,GOLDEN TULIP HOTELS,car_rental,high
+3507,FRIENDSHIP INNS,car_rental,high
+3508,QUALITY INNS  QUALITY SUITES,car_rental,high
+3509,MARRIOTT HOTELS,car_rental,high
+3510,DAYS INN  DAYSTOP,car_rental,high
+3511,ARABELLA HOTELS,car_rental,high
+3512,INTER-CONTINENTAL HOTELS,car_rental,high
+3513,WESTIN HOTELS,car_rental,high
+3514,Hotels/Motels/Inns/Resorts,car_rental,high
+3515,RODEWAY INNS,car_rental,high
+3516,LA QUINTA MOTOR INNS,car_rental,high
+3517,AMERICANA HOTELS,car_rental,high
+3518,SOL HOTELS,car_rental,high
+3519,PULLMAN INTERNATIONAL HOTELS,car_rental,high
+3520,MERIDIEN HOTELS,car_rental,high
+3521,CREST HOTELS (see FORTE HOTELS),car_rental,high
+3522,TOKYO HOTEL,car_rental,high
+3523,PENNSULA HOTEL,car_rental,high
+3524,WELCOMGROUP HOTELS,car_rental,high
+3525,DUNFEY HOTELS,car_rental,high
+3526,Hotels/Motels/Inns/Resorts,car_rental,high
+3527,DOWNTOWNER-PASSPORT HOTEL,car_rental,high
+3528,RED LION HOTELS  RED LION INNS,car_rental,high
+3529,CP HOTELS,car_rental,high
+3530,RENAISSANCE HOTELS  STOUFFER HOTELS,car_rental,high
+3531,ASTIR HOTELS,car_rental,high
+3532,SUN ROUTE HOTELS,car_rental,high
+3533,HOTEL IBIS,car_rental,high
+3534,SOUTHERN PACIFIC HOTELS,car_rental,high
+3535,HILTON INTERNATIONAL,car_rental,high
+3536,AMFAC HOTELS,car_rental,high
+3537,ANA HOTEL,car_rental,high
+3538,CONCORDE HOTELS,car_rental,high
+3539,Hotels/Motels/Inns/Resorts,car_rental,high
+3540,IBEROTEL HOTELS,car_rental,high
+3541,HOTEL OKURA,car_rental,high
+3542,ROYAL HOTELS,car_rental,high
+3543,FOUR SEASONS HOTELS,car_rental,high
+3544,CIGA HOTELS,car_rental,high
+3545,SHANGRI-LA INTERNATIONAL,car_rental,high
+3546,Hotels/Motels/Inns/Resorts,car_rental,high
+3547,Hotels/Motels/Inns/Resorts,car_rental,high
+3548,HOTELES MELIA,car_rental,high
+3549,AUBERGE DES GOVERNEURS,car_rental,high
+3550,REGAL 8 INNS,car_rental,high
+3551,Hotels/Motels/Inns/Resorts,car_rental,high
+3552,COAST HOTELS,car_rental,high
+3553,PARK INNS INTERNATIONAL,car_rental,high
+3554,Hotels/Motels/Inns/Resorts,car_rental,high
+3555,Hotels/Motels/Inns/Resorts,car_rental,high
+3556,Hotels/Motels/Inns/Resorts,car_rental,high
+3557,Hotels/Motels/Inns/Resorts,car_rental,high
+3558,JOLLY HOTELS,car_rental,high
+3559,Hotels/Motels/Inns/Resorts,car_rental,high
+3560,Hotels/Motels/Inns/Resorts,car_rental,high
+3561,Hotels/Motels/Inns/Resorts,car_rental,high
+3562,COMFORT INNS,car_rental,high
+3563,JOURNEYâ€™S END MOTLS,car_rental,high
+3564,Hotels/Motels/Inns/Resorts,car_rental,high
+3565,RELAX INNS,car_rental,high
+3566,Hotels/Motels/Inns/Resorts,car_rental,high
+3567,Hotels/Motels/Inns/Resorts,car_rental,high
+3568,LADBROKE HOTELS,car_rental,high
+3569,Hotels/Motels/Inns/Resorts,car_rental,high
+3570,FORUM HOTELS,car_rental,high
+3571,Hotels/Motels/Inns/Resorts,car_rental,high
+3572,MIYAKO HOTELS,car_rental,high
+3573,SANDMAN HOTELS,car_rental,high
+3574,VENTURE INNS,car_rental,high
+3575,VAGABOND HOTELS,car_rental,high
+3576,Hotels/Motels/Inns/Resorts,car_rental,high
+3577,MANDARIN ORIENTAL HOTEL,car_rental,high
+3578,Hotels/Motels/Inns/Resorts,car_rental,high
+3579,HOTEL MERCURE,car_rental,high
+3580,Hotels/Motels/Inns/Resorts,car_rental,high
+3581,DELTA HOTEL,car_rental,high
+3582,Hotels/Motels/Inns/Resorts,car_rental,high
+3583,SAS HOTELS,car_rental,high
+3584,PRINCESS HOTELS INTERNATIONAL,car_rental,high
+3585,HUNGAR HOTELS,car_rental,high
+3586,SOKOS HOTELS,car_rental,high
+3587,DORAL HOTELS,car_rental,high
+3588,HELMSLEY HOTELS,car_rental,high
+3589,Hotels/Motels/Inns/Resorts,car_rental,high
+3590,FAIRMONT HOTELS,car_rental,high
+3591,SONESTA HOTELS,car_rental,high
+3592,OMNI HOTELS,car_rental,high
+3593,CUNARD HOTELS,car_rental,high
+3594,Hotels/Motels/Inns/Resorts,car_rental,high
+3595,HOSPITALITY INTERNATIONAL,car_rental,high
+3596,Hotels/Motels/Inns/Resorts,car_rental,high
+3597,Hotels/Motels/Inns/Resorts,car_rental,high
+3598,REGENT INTERNATIONAL HOTELS,car_rental,high
+3599,PANNONIA HOTELS,car_rental,high
+3600,Hotels/Motels/Inns/Resorts,car_rental,high
+3601,Hotels/Motels/Inns/Resorts,car_rental,high
+3602,Hotels/Motels/Inns/Resorts,car_rental,high
+3603,NOAHâ€™S HOTELS,car_rental,high
+3604,Hotels/Motels/Inns/Resorts,car_rental,high
+3605,Hotels/Motels/Inns/Resorts,car_rental,high
+3606,Hotels/Motels/Inns/Resorts,car_rental,high
+3607,Hotels/Motels/Inns/Resorts,car_rental,high
+3608,Hotels/Motels/Inns/Resorts,car_rental,high
+3609,Hotels/Motels/Inns/Resorts,car_rental,high
+3610,Hotels/Motels/Inns/Resorts,car_rental,high
+3611,Hotels/Motels/Inns/Resorts,car_rental,high
+3612,MOVENPICK HOTELS,car_rental,high
+3613,Hotels/Motels/Inns/Resorts,car_rental,high
+3614,Hotels/Motels/Inns/Resorts,car_rental,high
+3615,TRAVELODGE,car_rental,high
+3616,Hotels/Motels/Inns/Resorts,car_rental,high
+3617,Hotels/Motels/Inns/Resorts,car_rental,high
+3618,Hotels/Motels/Inns/Resorts,car_rental,high
+3619,Hotels/Motels/Inns/Resorts,car_rental,high
+3620,TELFORD INTERNATIONAL,car_rental,high
+3621,Hotels/Motels/Inns/Resorts,car_rental,high
+3622,MERLIN HOTELS,car_rental,high
+3623,DORINT HOTELS,car_rental,high
+3624,Hotels/Motels/Inns/Resorts,car_rental,high
+3625,HOTLE UNIVERSALE,car_rental,high
+3626,PRINCE HOTELS,car_rental,high
+3627,Hotels/Motels/Inns/Resorts,car_rental,high
+3628,Hotels/Motels/Inns/Resorts,car_rental,high
+3629,DAN HOTELS,car_rental,high
+3630,Hotels/Motels/Inns/Resorts,car_rental,high
+3631,Hotels/Motels/Inns/Resorts,car_rental,high
+3632,Hotels/Motels/Inns/Resorts,car_rental,high
+3633,RANK HOTELS,car_rental,high
+3634,SWISSOTEL,car_rental,high
+3635,RESO HOTELS,car_rental,high
+3636,SAROVA HOTELS,car_rental,high
+3637,RAMADA INNS  RAMADA LIMITED,car_rental,high
+3638,HO JO INN  HOWARD JOHNSON,car_rental,high
+3639,MOUNT CHARLOTTE THISTLE,car_rental,high
+3640,HYATT HOTEL,car_rental,high
+3641,SOFITEL HOTELS,car_rental,high
+3642,NOVOTEL HOTELS,car_rental,high
+3643,STEIGENBERGER HOTELS,car_rental,high
+3644,ECONO LODGES,car_rental,high
+3645,QUEENS MOAT HOUSES,car_rental,high
+3646,SWALLOW HOTELS,car_rental,high
+3647,HUSA HOTELS,car_rental,high
+3648,DE VERE HOTELS,car_rental,high
+3649,RADISSON HOTELS,car_rental,high
+3650,RED ROOK INNS,car_rental,high
+3651,IMPERIAL LONDON HOTEL,car_rental,high
+3652,EMBASSY HOTELS,car_rental,high
+3653,PENTA HOTELS,car_rental,high
+3654,LOEWS HOTELS,car_rental,high
+3655,SCANDIC HOTELS,car_rental,high
+3656,SARA HOTELS,car_rental,high
+3657,OBEROI HOTELS,car_rental,high
+3658,OTANI HOTELS,car_rental,high
+3659,TAJ HOTELS INTERNATIONAL,car_rental,high
+3660,KNIGHTS INNS,car_rental,high
+3661,METROPOLE HOTELS,car_rental,high
+3662,Hotels/Motels/Inns/Resorts,car_rental,high
+3663,HOTELES EL PRESIDENTS,car_rental,high
+3664,FLAG INN,car_rental,high
+3665,HAMPTON INNS,car_rental,high
+3666,STAKIS HOTELS,car_rental,high
+3667,Hotels/Motels/Inns/Resorts,car_rental,high
+3668,MARITIM HOTELS,car_rental,high
+3669,Hotels/Motels/Inns/Resorts,car_rental,high
+3670,ARCARD HOTELS,car_rental,high
+3671,ARCTIA HOTELS,car_rental,high
+3672,CAMPANIEL HOTELS,car_rental,high
+3673,IBUSZ HOTELS,car_rental,high
+3674,RANTASIPI HOTELS,car_rental,high
+3675,INTERHOTEL CEDOK,car_rental,high
+3676,Hotels/Motels/Inns/Resorts,car_rental,high
+3677,CLIMAT DE FRANCE HOTELS,car_rental,high
+3678,CUMULUS HOTELS,car_rental,high
+3679,DANUBIUS HOTEL,car_rental,high
+3680,Hotels/Motels/Inns/Resorts,car_rental,high
+3681,ADAMS MARK HOTELS,car_rental,high
+3682,ALLSTAR INNS,car_rental,high
+3683,Hotels/Motels/Inns/Resorts,car_rental,high
+3684,BUDGET HOST INNS,car_rental,high
+3685,BUDGETEL HOTELS,car_rental,high
+3686,SUISSE CHALETS,car_rental,high
+3687,CLARION HOTELS,car_rental,high
+3688,COMPRI HOTELS,car_rental,high
+3689,CONSORT HOTELS,car_rental,high
+3690,COURTYARD BY MARRIOTT,car_rental,high
+3691,DILLION INNS,car_rental,high
+3692,DOUBLETREE HOTELS,car_rental,high
+3693,DRURY INNS,car_rental,high
+3694,ECONOMY INNS OF AMERICA,car_rental,high
+3695,EMBASSY SUITES,car_rental,high
+3696,EXEL INNS,car_rental,high
+3697,FARFIELD HOTELS,car_rental,high
+3698,HARLEY HOTELS,car_rental,high
+3699,MIDWAY MOTOR LODGE,car_rental,high
+3700,MOTEL 6,car_rental,high
+3701,GUEST QUARTERS (Formally PICKETT SUITE HOTELS),car_rental,high
+3702,THE REGISTRY HOTELS,car_rental,high
+3703,RESIDENCE INNS,car_rental,high
+3704,ROYCE HOTELS,car_rental,high
+3705,SANDMAN INNS,car_rental,high
+3706,SHILO INNS,car_rental,high
+3707,SHONEYâ€™S INNS,car_rental,high
+3708,Hotels/Motels/Inns/Resorts,car_rental,high
+3709,SUPER8 MOTELS,car_rental,high
+3710,THE RITZ CARLTON HOTELS,car_rental,high
+3711,FLAG INNS (AUSRALIA),car_rental,high
+3712,GOLDEN CHAIN HOTEL,car_rental,high
+3713,QUALITY PACIFIC HOTEL,car_rental,high
+3714,FOUR SEASONS HOTEL (AUSTRALIA),car_rental,high
+3715,FARIFIELD INN,car_rental,high
+3716,CARLTON HOTELS,car_rental,high
+3717,CITY LODGE HOTELS,car_rental,high
+3718,KAROS HOTELS,car_rental,high
+3719,PROTEA HOTELS,car_rental,high
+3720,SOUTHERN SUN HOTELS,car_rental,high
+3721,HILTON CONRAD,car_rental,high
+3722,WYNDHAM HOTEL AND RESORTS,car_rental,high
+3723,RICA HOTELS,car_rental,high
+3724,INER NOR HOTELS,car_rental,high
+3725,SEAINES PLANATION,car_rental,high
+3726,RIO SUITES,car_rental,high
+3727,BROADMOOR HOTEL,car_rental,high
+3728,BALLYâ€™S HOTEL AND CASINO,car_rental,high
+3729,JOHN ASCUAGAâ€™S NUGGET,car_rental,high
+3730,MGM GRAND HOTEL,car_rental,high
+3731,HARRAHâ€™S HOTELS AND CASINOS,car_rental,high
+3732,OPRYLAND HOTEL,car_rental,high
+3733,BOCA RATON RESORT,car_rental,high
+3734,HARVEY/BRISTOL HOTELS,car_rental,high
+3735,Hotels/Motels/Inns/Resorts,car_rental,high
+3736,COLORADO BELLE/EDGEWATER RESORT,car_rental,high
+3737,RIVIERA HOTEL AND CASINO,car_rental,high
+3738,TROPICANA RESORT AND CASINO,car_rental,high
+3739,WOODSIDE HOTELS AND RESORTS,car_rental,high
+3740,TOWNPLACE SUITES,car_rental,high
+3741,MILLENIUM BROADWAY HOTEL,car_rental,high
+3742,CLUB MED,car_rental,high
+3743,BILTMORE HOTEL AND SUITES,car_rental,high
+3744,CAREFREE RESORTS,car_rental,high
+3745,ST. REGIS HOTEL,car_rental,high
+3746,THE ELIOT HOTEL,car_rental,high
+3747,CLUBCORP/CLUB RESORTS,car_rental,high
+3748,WELESLEY INNS,car_rental,high
+3749,THE BEVERLY HILLS HOTEL,car_rental,high
+3750,CROWNE PLAZA HOTELS,car_rental,high
+3751,HOMEWOOD SUITES,car_rental,high
+3752,PEABODY HOTELS,car_rental,high
+3753,GREENBRIAH RESORTS,car_rental,high
+3754,AMELIA ISLAND PLANATION,car_rental,high
+3755,THE HOMESTEAD,car_rental,high
+3756,SOUTH SEAS RESORTS,car_rental,high
+3757,Hotels/Motels/Inns/Resorts,car_rental,high
+3758,Hotels/Motels/Inns/Resorts,car_rental,high
+3759,Hotels/Motels/Inns/Resorts,car_rental,high
+3760,Hotels/Motels/Inns/Resorts,car_rental,high
+3761,Hotels/Motels/Inns/Resorts,car_rental,high
+3762,Hotels/Motels/Inns/Resorts,car_rental,high
+3763,Hotels/Motels/Inns/Resorts,car_rental,high
+3764,Hotels/Motels/Inns/Resorts,car_rental,high
+3765,Hotels/Motels/Inns/Resorts,car_rental,high
+3766,Hotels/Motels/Inns/Resorts,car_rental,high
+3767,Hotels/Motels/Inns/Resorts,car_rental,high
+3768,Hotels/Motels/Inns/Resorts,car_rental,high
+3769,Hotels/Motels/Inns/Resorts,car_rental,high
+3770,Hotels/Motels/Inns/Resorts,car_rental,high
+3771,Hotels/Motels/Inns/Resorts,car_rental,high
+3772,Hotels/Motels/Inns/Resorts,car_rental,high
+3773,Hotels/Motels/Inns/Resorts,car_rental,high
+3774,Hotels/Motels/Inns/Resorts,car_rental,high
+3775,Hotels/Motels/Inns/Resorts,car_rental,high
+3776,Hotels/Motels/Inns/Resorts,car_rental,high
+3777,Hotels/Motels/Inns/Resorts,car_rental,high
+3778,Hotels/Motels/Inns/Resorts,car_rental,high
+3779,Hotels/Motels/Inns/Resorts,car_rental,high
+3780,Hotels/Motels/Inns/Resorts,car_rental,high
+3781,Hotels/Motels/Inns/Resorts,car_rental,high
+3782,Hotels/Motels/Inns/Resorts,car_rental,high
+3783,Hotels/Motels/Inns/Resorts,car_rental,high
+3784,Hotels/Motels/Inns/Resorts,car_rental,high
+3785,Hotels/Motels/Inns/Resorts,car_rental,high
+3786,Hotels/Motels/Inns/Resorts,car_rental,high
+3787,Hotels/Motels/Inns/Resorts,car_rental,high
+3788,Hotels/Motels/Inns/Resorts,car_rental,high
+3789,Hotels/Motels/Inns/Resorts,car_rental,high
+3790,Hotels/Motels/Inns/Resorts,car_rental,high
+3816,Home2Suites,car_rental,high
+3835,* MASTERS ECONOMY INNS,car_rental,high
+4011,Railroads,transportation,low
+4111,Local/Suburban Commuter Passenger Transportation â€“ Railroads  Feries  Local Water Transportation.,transportation,low
+4112,Passenger Railways,transportation,low
+4119,Ambulance Services,transportation,low
+4121,Taxicabs and Limousines,transportation,low
+4131,Bus Lines  Including Charters  Tour Buses,transportation,low
+4214,Motor Freight Carriers  Moving and Storage Companies  Trucking â€“ Local/Long Distance  Delivery Services â€“ Local,transportation,low
+4215,Courier Services â€“ Air or Ground  Freight forwarders,transportation,low
+4225,Public warehousing  Storage,transportation,low
+4411,Cruise and Steamship Lines,utilities,low
+4457,Boat Rentals and Leases,utilities,low
+4468,Marinas  Marine Service  and Supplies,utilities,low
+4511,Airlines  Air Carriers ( not listed elsewhere),utilities,low
+4582,Airports  Airport Terminals  Flying Fields,utilities,low
+4722,Travel Agencies and Tour Operations,travel,high
+4723,Package Tour Operators (For use in Germany only),travel,high
+4784,Toll and Bridge Fees,utilities,low
+4789,Transportation Services  Not elsewhere classified),utilities,low
+4812,Telecommunications Equipment including telephone sales,utilities,low
+4814,Fax services  Telecommunication Services,utilities,low
+4815,VisaPhone,utilities,low
+4816,Computer Network Services,utilities,low
+4821,Telegraph services,utilities,low
+4829,Money Orders â€“ Wire Transfer,money_transfer,high
+4899,Cable and other pay television (previously Cable Services),utilities,low
+4900,Electric  Gas  Sanitary and Water Utilities,utilities,low
+5013,Motor vehicle supplies and new parts,wholesale,medium
+5021,Office and Commercial Furniture,wholesale,medium
+5039,Construction Materials  Not Elsewhere Classified,wholesale,medium
+5044,Office  Photographic  Photocopy  and Microfilm Equipment,wholesale,medium
+5045,Computers  Computer Peripheral Equipment  Software,software_tech,high
+5046,Commercial Equipment  Not Elsewhere Classified,wholesale,medium
+5047,Medical  Dental Ophthalmic  Hospital Equipment and Supplies,wholesale,medium
+5051,Metal Service Centers and Offices,wholesale,medium
+5065,Electrical Parts and Equipment,wholesale,medium
+5072,Hardware Equipment and Supplies,wholesale,medium
+5074,Plumbing and Heating Equipment and Supplies,wholesale,medium
+5085,Industrial Supplies  Not Elsewhere Classified,wholesale,medium
+5094,Precious Stones and Metals  Watches and Jewelry,wholesale,medium
+5099,Durable Goods  Not Elsewhere Classified,wholesale,medium
+5111,Stationery  Office Supplies  Printing  and Writing Paper,petroleum_wholesale,medium
+5122,Drugs  Drug Proprietors  and Druggistâ€™s Sundries,petroleum_wholesale,medium
+5131,Piece Goods  Notions  and Other Dry Goods,petroleum_wholesale,medium
+5137,Menâ€™s Womenâ€™s and Childrenâ€™s Uniforms and Commercial Clothing,petroleum_wholesale,medium
+5139,Commercial Footwear,petroleum_wholesale,medium
+5169,Chemicals and Allied Products  Not Elsewhere Classified,petroleum_wholesale,medium
+5172,Petroleum and Petroleum Products,petroleum_wholesale,medium
+5192,Books  Periodicals  and Newspapers,petroleum_wholesale,medium
+5193,Floristsâ€™ Supplies  Nursery Stock and Flowers,petroleum_wholesale,medium
+5198,Paints  Varnishes  and Supplies,petroleum_wholesale,medium
+5199,Non-durable Goods  Not Elsewhere Classified,petroleum_wholesale,medium
+5200,Home Supply Warehouse Stores,home_improvement,medium
+5211,Lumber and Building Materials Stores,home_improvement,medium
+5231,Glass  Paint  and Wallpaper Stores,home_improvement,medium
+5251,Hardware Stores,home_improvement,medium
+5261,Nurseries â€“ Lawn and Garden Supply Store,home_improvement,medium
+5271,Mobile Home Dealers,home_improvement,medium
+5300,Wholesale Clubs,discount_retail,medium
+5309,Duty Free Store,discount_retail,medium
+5310,Discount Stores,discount_retail,medium
+5311,Department Stores,discount_retail,medium
+5331,Variety Stores,discount_retail,medium
+5399,Misc. General Merchandise,discount_retail,medium
+5411,Grocery Stores  Supermarkets,grocery,low
+5422,Meat Provisioners â€“ Freezer and Locker,grocery,low
+5441,Candy  Nut  and Confectionery Stores,grocery,low
+5451,Dairy Products Stores,grocery,low
+5462,Bakeries,grocery,low
+5499,Misc. Food Stores â€“ Convenience Stores and Specialty Markets,grocery,low
+5511,Car and Truck Dealers (New and Used) Sales  Service  Repairs  Parts  and Leasing,automotive,low
+5521,Automobile and Truck Dealers (Used Only),automotive,low
+5531,Automobile Supply Stores,automotive,low
+5532,Automotive Tire Stores,automotive,low
+5533,Automotive Parts  Accessories Stores,automotive,low
+5541,Service Stations ( with or without ancillary services),automotive,low
+5542,Automated Fuel Dispensers,automotive,low
+5551,Boat Dealers,automotive,low
+5561,Recreational and Utility Trailers  Camp Dealers,automotive,low
+5571,Motorcycle Dealers,automotive,low
+5592,Motor Home Dealers,automotive,low
+5598,Snowmobile Dealers,automotive,low
+5599,Miscellaneous Auto Dealers ,automotive,low
+5611,Menâ€™s and Boyâ€™s Clothing and Accessories Stores,apparel,medium
+5621,Womenâ€™s Ready-to-Wear Stores,apparel,medium
+5631,Womenâ€™s Accessory and Specialty Shops,apparel,medium
+5641,Childrenâ€™s and Infantâ€™s Wear Stores,apparel,medium
+5651,Family Clothing Stores,apparel,medium
+5655,Sports Apparel  Riding Apparel Stores,apparel,medium
+5661,Shoe Stores,apparel,medium
+5681,Furriers and Fur Shops,apparel,medium
+5691,Menâ€™s and Womenâ€™s Clothing Stores,apparel,medium
+5697,Tailors  Seamstress  Mending  and Alterations,apparel,medium
+5698,Wig and Toupee Stores,apparel,medium
+5699,Miscellaneous Apparel and Accessory Shops,apparel,medium
+5712,Furniture  Home Furnishings  and Equipment Stores  ExceptAppliances,furniture,low
+5713,Floor Covering Stores,furniture,low
+5714,Drapery  Window Covering and Upholstery Stores,furniture,low
+5718,Fireplace  Fireplace Screens  and Accessories Stores,furniture,low
+5719,Miscellaneous Home Furnishing Specialty Stores,furniture,low
+5722,Household Appliance Stores,furniture,low
+5732,Electronic Sales,furniture,low
+5733,Music Stores  Musical Instruments  Piano Sheet Music,furniture,low
+5734,Computer Software Stores,software_tech,high
+5735,Record Shops,furniture,low
+5811,Caterers,food_beverage,low
+5812,Eating places and Restaurants,food_beverage,low
+5813,Drinking Places (Alcoholic Beverages)  Bars  Taverns  Cocktail lounges  Nightclubs and Discotheques,food_beverage,low
+5814,Fast Food Restaurants,food_beverage,low
+5815,Digital Goods: Media  Books  Movies  Music,digital_goods,high
+5816,Digital Goods: Games,digital_goods,high
+5817,Digital Goods: Applications (Excludes Games),digital_goods,high
+5818,Digital Goods: Large Digital Goods Merchant,digital_goods,high
+5832,Antique Shops â€“ Sales  Repairs  and Restoration Services,misc,medium
+5912,Drug Stores and Pharmacies,pharmacy,low
+5921,Package Stores â€“ Beer  Wine  and Liquor,misc_retail,medium
+5931,Used Merchandise and Secondhand Stores,misc_retail,medium
+5932,Antique Shops,misc_retail,medium
+5933,Pawn Shops and Salvage Yards,misc_retail,medium
+5935,Wrecking and Salvage Yards,misc_retail,medium
+5937,Antique Reproductions,misc_retail,medium
+5940,Bicycle Shops â€“ Sales and Service,misc_retail,medium
+5941,Sporting Goods Stores,misc_retail,medium
+5942,Book Stores,misc_retail,medium
+5943,Stationery Stores  Office and School Supply Stores,misc_retail,medium
+5944,Watch  Clock  Jewelry  and Silverware Stores,misc_retail,medium
+5945,Hobby  Toy  and Game Shops,misc_retail,medium
+5946,Camera and Photographic Supply Stores,misc_retail,medium
+5947,Card Shops  Gift  Novelty  and Souvenir Shops,misc_retail,medium
+5948,Leather Goods Stores,misc_retail,medium
+5949,Sewing  Needle  Fabric  and Price Goods Stores,misc_retail,medium
+5950,Glassware/Crystal Stores,misc_retail,medium
+5960,Direct Marketing- Insurance Service,direct_marketing,high
+5961,Mail Order Houses Including Catalog Order Stores  Book/Record Clubs (No longer permitted for U.S. original presentments),direct_marketing,high
+5962,Direct Marketing â€“ Travel Related Arrangements Services,direct_marketing,high
+5963,Door-to-Door Sales,direct_marketing,high
+5964,Direct Marketing â€“ Catalog Merchant,direct_marketing,high
+5965,Direct Marketing â€“ Catalog and Catalog and Retail Merchant,direct_marketing,high
+5966,Direct Marketing- Outbound Telemarketing Merchant,direct_marketing,high
+5967,Direct Marketing â€“ Inbound Teleservices Merchant,direct_marketing,high
+5968,Direct Marketing â€“ Continuity/Subscription Merchant,direct_marketing,high
+5969,Direct Marketing â€“ Not Elsewhere Classified,direct_marketing,high
+5970,Artistâ€™s Supply and Craft Shops,misc_retail,medium
+5971,Art Dealers and Galleries,misc_retail,medium
+5972,Stamp and Coin Stores â€“ Philatelic and Numismatic Supplies,misc_retail,medium
+5973,Religious Goods Stores,misc_retail,medium
+5975,Hearing Aids â€“ Sales  Service  and Supply Stores,misc_retail,medium
+5976,Orthopedic Goods Prosthetic Devices,misc_retail,medium
+5977,Cosmetic Stores,misc_retail,medium
+5978,Typewriter Stores â€“ Sales  Rental  Service,misc_retail,medium
+5983,Fuel â€“ Fuel Oil  Wood  Coal  Liquefied Petroleum,misc_retail,medium
+5992,Florists,misc_retail,medium
+5993,Cigar Stores and Stands,misc_retail,medium
+5994,News Dealers and Newsstands,misc_retail,medium
+5995,Pet Shops  Pet Foods  and Supplies Stores,misc_retail,medium
+5996,Swimming Pools â€“ Sales  Service  and Supplies,misc_retail,medium
+5997,Electric Razor Stores â€“ Sales and Service,misc_retail,medium
+5998,Tent and Awning Shops,misc_retail,medium
+5999,Miscellaneous and Specialty Retail Stores,misc_retail,medium
+6010,Financial Institutions â€“ Manual Cash Disbursements,financial_cash,high
+6011,Financial Institutions â€“ Manual Cash Disbursements,financial_cash,high
+6012,Financial Institutions â€“ Merchandise and Services,financial_cash,high
+6051,Non-Financial Institutions â€“ Foreign Currency  Money Orders (not wire transfer) and Travelers Cheques,financial_cash,high
+6211,Security Brokers/Dealers,finance_insurance,medium
+6300,Insurance Sales  Underwriting  and Premiums,finance_insurance,medium
+6381,Insurance Premiums  (no longer valid for first presentment work),finance_insurance,medium
+6399,Insurance  Not Elsewhere Classified ( no longer valid forfirst presentment work),finance_insurance,medium
+6513,Real Estate Agents and Managers - Rentals,misc,medium
+7011,Lodging â€“ Hotels  Motels  Resorts  Central Reservation Services (not elsewhere classified),lodging,high
+7012,Timeshares,travel,high
+7032,Sporting and Recreational Camps,misc,medium
+7033,Trailer Parks and Camp Grounds,misc,medium
+7210,Laundry  Cleaning  and Garment Services,personal_services,low
+7211,Laundry â€“ Family and Commercial,personal_services,low
+7216,Dry Cleaners,personal_services,low
+7217,Carpet and Upholstery Cleaning,personal_services,low
+7221,Photographic Studios,personal_services,low
+7230,Barber and Beauty Shops,personal_services,low
+7251,Shop Repair Shops and Shoe Shine Parlors  and Hat Cleaning Shops,personal_services,low
+7261,Funeral Service and Crematories,personal_services,low
+7273,Dating and Escort Services,personal_services,low
+7276,Tax Preparation Service,personal_services,low
+7277,Counseling Service â€“ Debt  Marriage  Personal,personal_services,low
+7278,Buying/Shopping Services  Clubs,personal_services,low
+7296,Clothing Rental â€“ Costumes  Formal Wear  Uniforms,personal_services,low
+7297,Massage Parlors,personal_services,low
+7298,Health and Beauty Shops,personal_services,low
+7299,Miscellaneous Personal Services ( not elsewhere classifies),personal_services,low
+7311,Advertising Services,business_services,medium
+7321,Consumer Credit Reporting Agencies,business_services,medium
+7332,Blueprinting and Photocopying Services,business_services,medium
+7333,Commercial Photography  Art and Graphics,business_services,medium
+7338,Quick Copy  Reproduction and Blueprinting Services,business_services,medium
+7339,Stenographic and Secretarial Support Services,business_services,medium
+7342,Exterminating and Disinfecting Services,business_services,medium
+7349,Cleaning and Maintenance  Janitorial Services,business_services,medium
+7361,Employment Agencies  Temporary Help Services,business_services,medium
+7372,Computer Programming  Integrated Systems Design and Data Processing Services,software_tech,high
+7375,Information Retrieval Services,software_tech,high
+7379,Computer Maintenance and Repair Services  Not Elsewhere Classified,software_tech,high
+7392,Management  Consulting  and Public Relations Services,business_services,medium
+7393,Protective and Security Services â€“ Including Armored Carsand Guard Dogs,business_services,medium
+7394,Equipment Rental and Leasing Services  Tool Rental  Furniture Rental  and Appliance Rental,business_services,medium
+7395,Photofinishing Laboratories  Photo Developing,business_services,medium
+7399,Business Services  Not Elsewhere Classified,travel,high
+7511,Truck Stop,auto_repair,low
+7512,Car Rental Companies ( Not Listed Below),car_rental,high
+7513,Truck and Utility Trailer Rentals,auto_repair,low
+7519,Motor Home and Recreational Vehicle Rentals,auto_repair,low
+7523,Automobile Parking Lots and Garages,auto_repair,low
+7531,Automotive Body Repair Shops,auto_repair,low
+7534,Tire Re-treading and Repair Shops,auto_repair,low
+7535,Paint Shops â€“ Automotive,auto_repair,low
+7538,Automotive Service Shops,auto_repair,low
+7542,Car Washes,auto_repair,low
+7549,Towing Services,auto_repair,low
+7622,Radio Repair Shops,misc,medium
+7623,Air Conditioning and Refrigeration Repair Shops,misc,medium
+7629,Electrical And Small Appliance Repair Shops,misc,medium
+7631,Watch  Clock  and Jewelry Repair,misc,medium
+7641,Furniture  Furniture Repair  and Furniture Refinishing,misc,medium
+7692,Welding Repair,misc,medium
+7699,Repair Shops and Related Services â€“Miscellaneous,misc,medium
+7800,Government-Owned Lotteries,misc,medium
+7801,Government-Licensed On-Line Casinos (On-Line Gambling),gambling,very_high
+7802,Government-Licensed Horse/Dog Racing,gambling,very_high
+7829,Motion Pictures and Video Tape Production and Distribution,misc,medium
+7832,Motion Picture Theaters,misc,medium
+7841,Video Tape Rental Stores,misc,medium
+7911,Dance Halls  Studios and Schools,recreation,medium
+7922,Theatrical Producers (Except Motion Pictures)  Ticket Agencies,recreation,medium
+7929,Bands  Orchestras  and Miscellaneous Entertainers (Not Elsewhere Classified),recreation,medium
+7932,Billiard and Pool Establishments,recreation,medium
+7933,Bowling Alleys,recreation,medium
+7941,Commercial Sports  Athletic Fields  Professional Sport Clubs  and Sport Promoters,recreation,medium
+7991,Tourist Attractions and Exhibits,recreation,medium
+7992,Golf Courses â€“ Public,recreation,medium
+7993,Video Amusement Game Supplies,recreation,medium
+7994,Video Game Arcades/Establishments,recreation,medium
+7995,Betting (including Lottery Tickets  Casino Gaming Chips  Off-track Betting and Wagers at Race Tracks),gambling,very_high
+7996,Amusement Parks  Carnivals  Circuses  Fortune Tellers,misc,medium
+7997,Membership Clubs (Sports  Recreation  Athletic)  Country Clubs  and Private Golf Courses,misc,medium
+7998,Aquariums  Sea-aquariums  Dolphinariums,misc,medium
+7999,Recreation Services (Not Elsewhere Classified),misc,medium
+8011,Doctors and Physicians (Not Elsewhere Classified),healthcare,low
+8021,Dentists and Orthodontists,healthcare,low
+8031,Osteopaths,healthcare,low
+8041,Chiropractors,healthcare,low
+8042,Optometrists and Ophthalmologists,healthcare,low
+8043,Opticians  Opticians Goods and Eyeglasses,healthcare,low
+8044,Opticians  Optical Goods  and Eyeglasses (no longer validfor first presentments),healthcare,low
+8049,Podiatrists and Chiropodists,healthcare,low
+8050,Nursing and Personal Care Facilities,healthcare,low
+8062,Hospitals,healthcare,low
+8071,Medical and Dental Laboratories,healthcare,low
+8099,Medical Services and Health Practitioners (Not Elsewhere Classified),healthcare,low
+8111,Legal Services and Attorneys,professional_services,low
+8211,Elementary and Secondary Schools,professional_services,low
+8220,Colleges  Junior Colleges  Universities  and ProfessionalSchools,professional_services,low
+8241,Correspondence Schools,professional_services,low
+8244,Business and Secretarial Schools,professional_services,low
+8249,Vocational Schools and Trade Schools,professional_services,low
+8299,Schools and Educational Services ( Not Elsewhere Classified),professional_services,low
+8351,Child Care Services,nonprofit,low
+8398,Charitable and Social Service Organizations,nonprofit,low
+8641,Civic  Fraternal  and Social Associations,nonprofit,low
+8651,Political Organizations,nonprofit,low
+8661,Religious Organizations,nonprofit,low
+8675,Automobile Associations,nonprofit,low
+8699,Membership Organizations ( Not Elsewhere Classified),nonprofit,low
+8734,Testing Laboratories ( non-medical),misc,medium
+8911,Architectural â€“ Engineering and Surveying Services,misc,medium
+8931,Accounting  Auditing  and Bookkeeping Services,misc,medium
+8999,Professional Services ( Not Elsewhere Defined),misc,medium
+9211,Court Costs  including Alimony and Child Support,government,low
+9222,Fines,government,low
+9223,Bail and Bond Payments,government,low
+9311,Tax Payments,government,low
+9399,Government Services ( Not Elsewhere Classified),government,low
+9402,Postal Services â€“ Government Only,government,low
+9405,Intra â€“ Government Transactions,government,low
+9700,Automated Referral Service ( For Visa Only),government,low
+9701,Visa Credential Service ( For Visa Only),government,low
+9702,GCAS Emergency Services ( For Visa Only),government,low
+9950,Intra â€“ Company Purchases ( For Visa Only),government,low

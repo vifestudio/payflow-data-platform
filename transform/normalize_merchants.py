@@ -60,6 +60,22 @@ MERCHANT_ALIASES = {
     "Shell":      ["Shell", "Shell Gas Station", "Shell Oil"],
     "Walmart":    ["Walmart", "Walmart Supercenter"],
 }
+# Real MCC codes for the 10 known canonical merchants.
+# Used to populate mcc_code in the merchant_map parquet so Silver can join
+# the full mcc_catalog without a hardcoded seed per merchant.
+MERCHANT_MCC = {
+    "Amazon":      "5999",  # Retail Stores – Default
+    "Uber":        "4121",  # Taxicabs and Limousines
+    "Netflix":     "7841",  # Video Tape Rental Stores
+    "Spotify":     "5815",  # Digital Goods: Media
+    "Apple":       "5734",  # Computer Software Stores
+    "Walmart":     "5310",  # Discount Stores
+    "McDonald's":  "5812",  # Eating Places Restaurants
+    "Shell":       "5541",  # Service Stations
+    "Airbnb":      "7011",  # Lodging – Hotels Motels Resorts
+    "Steam":       "7995",  # Betting Casino Gaming Chips
+}
+
 CANONICAL_MERCHANTS = list(MERCHANT_ALIASES.keys())
 
 PG_DSN = {
@@ -132,7 +148,8 @@ def main() -> None:
             "  raw_merchant TEXT PRIMARY KEY,"
             "  canonical_merchant TEXT NOT NULL,"
             "  similarity REAL NOT NULL,"
-            "  is_new BOOLEAN NOT NULL DEFAULT false)"
+            "  is_new BOOLEAN NOT NULL DEFAULT false,"
+            "  mcc_code VARCHAR(4))"
         )
         for name, emb in zip(raw, raw_emb):
             cur.execute(
@@ -140,17 +157,24 @@ def main() -> None:
                 "FROM merchant_canonical ORDER BY embedding <=> %s::vector LIMIT 1",
                 (emb.tolist(), emb.tolist()),
             )
-            canonical, similarity = cur.fetchone()
+            nearest_canonical, similarity = cur.fetchone()
             is_new = similarity < SIMILARITY_THRESHOLD
             if is_new:
                 canonical = name
                 new_merchants += 1
+            else:
+                canonical = nearest_canonical
+            # Known merchants: use their real MCC.
+            # New merchants: inherit the MCC of the nearest known canonical so
+            # Silver can still join the full mcc_catalog for risk classification.
+            mcc_code = MERCHANT_MCC.get(canonical) or MERCHANT_MCC.get(nearest_canonical)
             cur.execute(
                 "INSERT INTO merchant_normalization "
-                "(raw_merchant, canonical_merchant, similarity, is_new) VALUES (%s, %s, %s, %s)",
-                (name, canonical, float(similarity), is_new),
+                "(raw_merchant, canonical_merchant, similarity, is_new, mcc_code) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (name, canonical, float(similarity), is_new, mcc_code),
             )
-            rows.append((name, canonical, float(similarity), is_new))
+            rows.append((name, canonical, float(similarity), is_new, mcc_code))
     conn.commit()
     if new_merchants:
         log.info(f"{new_merchants} raw names below threshold {SIMILARITY_THRESHOLD} kept as new merchants")
@@ -166,7 +190,7 @@ def main() -> None:
     conn.close()
 
     # Publish the map to R2 so dbt (stg_merchant_map) bakes merchant_clean in Silver.
-    df = pd.DataFrame(rows, columns=["raw_merchant", "canonical_merchant", "similarity", "is_new"])
+    df = pd.DataFrame(rows, columns=["raw_merchant", "canonical_merchant", "similarity", "is_new", "mcc_code"])
     con.register("merchant_map_df", df)
     con.execute(f"COPY merchant_map_df TO '{MAP_S3_PATH}' (FORMAT PARQUET)")
     con.close()
