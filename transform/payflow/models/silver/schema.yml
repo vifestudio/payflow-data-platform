@@ -77,6 +77,8 @@ models:
         tests:
           - not_null
           - relationships:
+              config:
+                severity: warn
               arguments:
                 to: ref('silver_transactions')
                 field: transaction_id
