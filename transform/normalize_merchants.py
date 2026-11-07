@@ -68,7 +68,7 @@ PG_DSN = {
     "dbname":   os.getenv("POSTGRES_DB"),
     "user":     os.getenv("POSTGRES_USER"),
     "password": os.getenv("POSTGRES_PASSWORD"),
-    "sslmode":  "disable",
+    "sslmode":  os.getenv("POSTGRES_SSLMODE", "disable"),
 }
 
 

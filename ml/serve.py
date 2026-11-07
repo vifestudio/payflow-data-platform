@@ -132,7 +132,7 @@ def predict(txn: TransactionIn):
 
     probability = float(_pipeline.predict_proba(row)[0, 1])
     decision = decide(probability)
-    is_fraud = decision == "decline"
+    is_fraud = probability >= FRAUD_THRESHOLD
 
     return PredictionOut(
         transaction_id=txn.transaction_id,

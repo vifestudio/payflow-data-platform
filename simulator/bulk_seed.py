@@ -248,8 +248,9 @@ def build_normal_transaction(account_id, is_fraud, pattern, canonical=None, dirt
         base_time = random_timestamp_with_peaks()
 
     if is_fraud and pattern == "geo_impossible":
-        lat = float(rng.uniform(8.0, 11.5))
-        lon = float(rng.uniform(-85.9, -82.5))
+        far_lat, far_lon = random.choice(GEO_IMPOSSIBLE_LOCATIONS)
+        lat = far_lat
+        lon = far_lon
     else:
         lat = float(rng.uniform(8.0, 11.5))
         lon = float(rng.uniform(-85.9, -82.5))
@@ -289,7 +290,7 @@ def build_card_testing_burst(account_id):
             "txn": (txn_id, account_id, dirty, amount, random.choice(CURRENCIES), "confirmed", ts),
             "tel": {
                 "transaction_id": txn_id,
-                "device_type": "mobile",
+                "device_type": random.choice(["mobile", "desktop", "tablet"]),
                 "ip_address": fake.ipv4_public(),
                 "user_agent": fake.user_agent(),
                 "latitude": float(rng.uniform(8.0, 11.5)),

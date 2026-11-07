@@ -4,8 +4,11 @@ PayFlow pipeline orchestrated with Prefect 3.
 Execution order:
   1. Trigger Airbyte syncs (Postgres, MongoDB, FX API) in parallel
   2. Wait for all three to complete
-  3. Run dbt (incremental Silver + rebuild Gold)
-  4. Write Silver/Gold to R2 Delta Lake (MERGE for keyed tables)
+  3. Normalize merchant names (pgvector -> R2)
+  4. Run dbt (incremental Silver + rebuild Gold)
+  5. Run dbt tests — abort if any test errors
+  6. Write Silver/Gold to R2 Delta Lake (MERGE for keyed tables)
+  7. Load Gold tables to BigQuery
 
 Schedule: hourly via flow.serve() at the bottom, or deploy to Prefect Cloud.
 
@@ -113,6 +116,23 @@ def run_dbt(full_refresh: bool = False) -> None:
         raise RuntimeError("dbt run failed — check logs above")
 
 
+@task(name="test-dbt", retries=0)
+def test_dbt() -> None:
+    """Run dbt tests. Fails the pipeline if any test errors (warns are allowed)."""
+    logger = get_run_logger()
+    result = subprocess.run(
+        ["dbt", "test", "--no-partial-parse"],
+        cwd=DBT_DIR,
+        env={**os.environ},
+        capture_output=True,
+        text=True,
+    )
+    logger.info(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError("dbt test failed — aborting before BigQuery load")
+
+
 # ---------------------------------------------------------------------------
 # Delta Lake write task
 # ---------------------------------------------------------------------------
@@ -216,10 +236,13 @@ def payflow_pipeline(full_refresh: bool = False) -> None:
     # 3. Transform: Silver (with merchant_clean) + Gold
     run_dbt(full_refresh=full_refresh)
 
-    # 4. Persist to R2
+    # 4. Validate: abort before writing anywhere if data quality fails
+    test_dbt()
+
+    # 5. Persist to R2
     write_delta_lake()
 
-    # 5. Load Gold to BigQuery
+    # 6. Load Gold to BigQuery
     load_bigquery()
 
     logger.info("PayFlow pipeline complete.")
