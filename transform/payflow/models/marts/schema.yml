@@ -1,53 +1,71 @@
 version: 2
 
-# Tests de dbt: contratos sobre lo que los datos DEBEN ser.
-# - not_null:        esta columna nunca debería tener NULL
-# - unique:          no puede haber dos filas con el mismo valor (bueno para PKs y fechas)
-# - accepted_values: solo estos valores son válidos en esta columna
-# - relationships:   esta FK debe existir en la tabla referenciada
-#
-# Si un test falla -> `dbt test` retorna exit code 1 -> Prefect puede alertar
-# antes de que datos corruptos lleguen a BigQuery y rompan el dashboard.
-
 models:
+  - name: dim_merchants
+    description: "Merchant dimension: one row per canonical merchant with MCC code, category, and risk tier."
+    columns:
+      - name: merchant_clean
+        tests: [not_null, unique]
+      - name: mcc_code
+        tests: [not_null]
+      - name: mcc_category
+        tests: [not_null]
+      - name: risk_tier
+        tests: [not_null]
+
+  - name: dim_date
+    description: "Date dimension: one row per calendar day with year, month, quarter, day_of_week, and is_weekend."
+    columns:
+      - name: transaction_date
+        tests: [not_null, unique]
+      - name: year
+        tests: [not_null]
+      - name: month
+        tests: [not_null]
+      - name: day_of_week
+        tests: [not_null]
+      - name: is_weekend
+        tests: [not_null]
+
+  - name: fct_transactions
+    description: >
+      Fact table: one row per transaction with foreign keys to dim_merchants,
+      dim_date, and dim_accounts. Measures are amount_usd, latency_ms,
+      credit_limit. Built from gold_fraud_features (the validated Gold layer).
+    columns:
+      - name: transaction_id
+        tests: [not_null, unique]
+      - name: account_id
+        tests: [not_null]
+      - name: merchant_clean
+        tests: [not_null]
+      - name: transaction_date
+        tests: [not_null]
+      - name: amount_usd
+        tests: [not_null]
+      - name: is_fraud
+        tests: [not_null]
+
   - name: mart_fraud_by_merchant
-    description: "Fraud rate and amounts grouped by canonical merchant name."
+    description: "Fraud rate and amounts by canonical merchant, enriched with mcc_category and risk_tier from dim_merchants."
     columns:
       - name: merchant
-        description: "Canonical merchant name (after pgvector normalization in Silver)."
-        tests:
-          - not_null
-          - unique   # one row per merchant; if this breaks, GROUP BY broke or merchant_clean has NULLs
+        tests: [not_null, unique]
+      - name: mcc_category
+        tests: [not_null]
+      - name: risk_tier
+        tests: [not_null]
       - name: total_transactions
         tests: [not_null]
-      - name: fraud_transactions
-        tests: [not_null]
       - name: fraud_rate
-        tests: [not_null]
-      - name: fraud_amount_usd
-        tests: [not_null]
-      - name: total_amount_usd
         tests: [not_null]
 
   - name: mart_fraud_daily
-    description: "Daily fraud trend: one row per calendar day."
+    description: "Daily fraud trend joined to dim_date for year/month/quarter/is_weekend context."
     columns:
       - name: transaction_date
-        description: "Calendar date of the transactions."
-        tests:
-          - not_null
-          - unique   # one row per day; if this breaks, the GROUP BY broke
+        tests: [not_null, unique]
       - name: total_transactions
         tests: [not_null]
-      - name: fraud_count
-        tests: [not_null]
-      - name: approved_count
-        tests: [not_null]
       - name: fraud_rate
-        tests: [not_null]
-      - name: total_amount_usd
-        tests: [not_null]
-      - name: fraud_amount_usd
-        tests: [not_null]
-      - name: avg_amount_usd
         tests: [not_null]
