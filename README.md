@@ -106,6 +106,7 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 | `orchestration/` | Prefect flows |
 | `serving/` | FastAPI: /predict, /search, vector search |
 | `streaming/` | Kafka producer and fraud consumer |
+| `notebooks/` | EDA over Gold tables (BigQuery) |
 | `infra/` | docker-compose, env templates |
 
 ## Running locally
@@ -215,6 +216,20 @@ Six tables in the `payflow_analytics` dataset: `gold_fraud_features`, `gold_dail
 ![BigQuery tables](docs/screenshots/bigquery-tables.png)
 
 ![BigQuery gold data](docs/screenshots/bigquery-gold-data.png)
+
+### EDA — Gold fraud features
+
+Exploratory analysis over `gold_fraud_features` loaded from BigQuery into a Jupyter notebook ([`notebooks/eda_gold.ipynb`](notebooks/eda_gold.ipynb)).
+
+Sections:
+- Fraud rate trend: daily volume and fraud rate over 366 days
+- Amount distribution: fraud transactions skew toward the tails
+- Fraud rate by device type, MCC category, account type, and currency — the same features that drive the XGBoost model
+- Fraud by hour of day
+- Fraud pattern breakdown (`card_testing`, `account_takeover`, etc.)
+- Numeric feature correlation matrix
+
+> **Note:** requires `gcloud auth application-default login` and the BigQuery Sandbox dataset to still be active. If the dataset expired, re-run `python transform/load_to_bigquery.py` first.
 
 ### GitHub Actions CI — both jobs green
 
