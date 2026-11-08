@@ -171,7 +171,7 @@ The ML service applies three thresholds to the model's output probability: `appr
 
 Four layers live in R2 after a full pipeline run: `bronze/` (raw Parquet from Airbyte), `silver/` (cleaned, typed, deduplicated Delta Lake), `gold/` (aggregated ML-ready features), and `reference/` (merchant map written by pgvector normalization).
 
-![R2 lake structure](docs/screenshots/bronze-r2-phase2.png)
+![R2 lake structure](docs/screenshots/r2-lake-structure.webp)
 
 ### Airbyte connections all green
 
