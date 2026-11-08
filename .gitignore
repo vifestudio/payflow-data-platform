@@ -37,6 +37,7 @@ desktop.ini
 ml/model/
 ml/mlruns/
 ml/mlruns.db
+mlruns/
 *.db
 
 # dbt user config
