@@ -18,10 +18,10 @@ DEST = ROOT / "transform" / "payflow" / "seeds" / "mcc_catalog.csv"
 # Source: Visa/MC published chargeback rates, Nilson Report CNP fraud by MCC.
 # ---------------------------------------------------------------------------
 def classify(mcc: int) -> tuple[str, str]:
-    # Gambling — highest chargeback rates in the industry
+    # Gambling: highest chargeback rates in the industry
     if mcc in (7801, 7802, 7995):
         return "gambling", "very_high"
-    # Airlines — high value, CNP, frequent chargebacks
+    # Airlines: high value, CNP, frequent chargebacks
     if 3000 <= mcc <= 3299:
         return "airlines", "high"
     # Hotels / Lodging
@@ -33,10 +33,10 @@ def classify(mcc: int) -> tuple[str, str]:
     # Digital goods (modern MCCs added by Visa/MC ~2012)
     if mcc in (5815, 5816, 5817, 5818):
         return "digital_goods", "high"
-    # Computer / software stores — CNP, no physical verification
+    # Computer / software stores: CNP, no physical verification
     if mcc in (5045, 5734, 7372, 7371, 7374, 7375, 7379):
         return "software_tech", "high"
-    # Direct marketing — historically highest CNP fraud
+    # Direct marketing: historically highest CNP fraud
     if 5960 <= mcc <= 5969:
         return "direct_marketing", "high"
     # Financial institutions / quasi-cash

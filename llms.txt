@@ -52,9 +52,9 @@ docs/screenshots/    Evidence screenshots
 - fraud_labels is a separate table: ground truth arrives days later via chargebacks,
   not at payment time. Embedding it in transactions creates ML leakage.
 - silver_transactions is incremental (delete+insert); Gold is full rebuild each run.
-- DuckDB reads Parquet from R2 via httpfs — no data movement, no cluster needed.
+- DuckDB reads Parquet from R2 via httpfs, no data movement, no cluster needed.
 - pgvector normalizes merchant names before Gold is loaded to BigQuery.
-- merchant excluded from ML features; mcc_category included instead — dirty name
+- merchant excluded from ML features; mcc_category included instead; dirty name
   variants at training time would not generalize to unseen variants at inference.
 - Fraud scoring thresholds: approve < 0.30, review 0.30–0.69, decline >= 0.70.
   FRAUD_THRESHOLD (0.50) is independent and used only for the is_fraud boolean.

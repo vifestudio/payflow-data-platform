@@ -6,7 +6,7 @@ Execution order:
   2. Wait for all three to complete
   3. Normalize merchant names (pgvector -> R2)
   4. Run dbt (incremental Silver + rebuild Gold)
-  5. Run dbt tests — abort if any test errors
+  5. Run dbt tests; abort if any test errors
   6. Write Silver/Gold to R2 Delta Lake (MERGE for keyed tables)
   7. Load Gold tables to BigQuery
 
@@ -66,7 +66,7 @@ def trigger_airbyte_sync(connection_id: str, label: str, bearer_token: str | Non
     )
     resp.raise_for_status()
     job_id = resp.json()["job"]["id"]
-    logger.info(f"[{label}] triggered — job {job_id}")
+    logger.info(f"[{label}] triggered, job {job_id}")
     return job_id
 
 
@@ -113,7 +113,7 @@ def run_dbt(full_refresh: bool = False) -> None:
     logger.info(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout)
     if result.returncode != 0:
         logger.error(result.stderr)
-        raise RuntimeError("dbt run failed — check logs above")
+        raise RuntimeError("dbt run failed, check logs above")
 
 
 @task(name="test-dbt", retries=0)
@@ -130,7 +130,7 @@ def test_dbt() -> None:
     logger.info(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout)
     if result.returncode != 0:
         logger.error(result.stderr)
-        raise RuntimeError("dbt test failed — aborting before BigQuery load")
+        raise RuntimeError("dbt test failed, aborting before BigQuery load")
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ def write_delta_lake() -> None:
     logger.info(result.stdout)
     if result.returncode != 0:
         logger.error(result.stderr)
-        raise RuntimeError("write_delta.py failed — check logs above")
+        raise RuntimeError("write_delta.py failed, check logs above")
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ def normalize_merchants() -> None:
     logger.info(result.stdout)
     if result.returncode != 0:
         logger.error(result.stderr)
-        raise RuntimeError("normalize_merchants.py failed — check logs above")
+        raise RuntimeError("normalize_merchants.py failed, check logs above")
 
 
 @task(name="load-bigquery", retries=1, retry_delay_seconds=30)
@@ -192,7 +192,7 @@ def load_bigquery() -> None:
     logger.info(result.stdout)
     if result.returncode != 0:
         logger.error(result.stderr)
-        raise RuntimeError("load_to_bigquery.py failed — check logs above")
+        raise RuntimeError("load_to_bigquery.py failed, check logs above")
 
 
 # ---------------------------------------------------------------------------
@@ -228,7 +228,7 @@ def payflow_pipeline(full_refresh: bool = False) -> None:
         wait_for_airbyte_job(mongo_job, label="mongodb", bearer_token=bearer)
         wait_for_airbyte_job(fx_job, label="fx-api", bearer_token=bearer)
     else:
-        logger.info("AIRBYTE_BEARER_TOKEN not set — skipping Airbyte trigger (syncs run on Airbyte schedule).")
+        logger.info("AIRBYTE_BEARER_TOKEN not set, skipping Airbyte trigger (syncs run on Airbyte schedule).")
 
     # 2. Normalize merchant names (pgvector -> R2) so Silver can bake merchant_clean
     normalize_merchants()

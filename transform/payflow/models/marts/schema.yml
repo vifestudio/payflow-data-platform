@@ -17,7 +17,7 @@ models:
         description: "Canonical merchant name (after pgvector normalization in Silver)."
         tests:
           - not_null
-          - unique   # one row per merchant — if this breaks, GROUP BY broke or merchant_clean has NULLs
+          - unique   # one row per merchant; if this breaks, GROUP BY broke or merchant_clean has NULLs
       - name: total_transactions
         tests: [not_null]
       - name: fraud_transactions
@@ -36,7 +36,7 @@ models:
         description: "Calendar date of the transactions."
         tests:
           - not_null
-          - unique   # one row per day — if this breaks, the GROUP BY broke
+          - unique   # one row per day; if this breaks, the GROUP BY broke
       - name: total_transactions
         tests: [not_null]
       - name: fraud_count

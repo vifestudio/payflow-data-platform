@@ -7,7 +7,7 @@ models:
       replacement, not incremental). Joins silver_transactions with
       silver_fraud_labels, silver_telemetry_events, and silver_accounts to produce
       one row per transaction with all behavioral features. merchant and merchant_clean
-      are excluded from ML features intentionally — dirty name variants at training
+      are excluded from ML features intentionally; dirty name variants at training
       time would not generalize to unseen variants at inference time. mcc_category
       and risk_tier are included instead, derived from the normalized canonical
       merchant via the mcc_catalog seed.

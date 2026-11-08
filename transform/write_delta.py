@@ -2,7 +2,7 @@
 Reads Silver and Gold tables from the local DuckDB file and writes them to
 Cloudflare R2 as Delta Lake tables.
 
-Silver tables: MERGE by primary key (upsert — only new/changed rows travel to R2).
+Silver tables: MERGE by primary key (upsert, only new/changed rows travel to R2).
 Gold tables: overwrite (rebuilt from scratch by dbt each run; small aggregates).
 fx_rates: overwrite (6-row lookup, always replace).
 

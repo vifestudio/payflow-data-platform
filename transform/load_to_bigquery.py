@@ -10,7 +10,7 @@ compatible with BigQuery Sandbox (no streaming inserts).
 Pipeline position: normalize_merchants.py (pgvector -> R2) -> dbt (Silver bakes
 merchant_clean, Gold aggregates) -> THIS -> BigQuery -> Looker.
 
-Uses Application Default Credentials (ADC) — run once:
+Uses Application Default Credentials (ADC); run once:
   gcloud auth application-default login
   gcloud auth application-default set-quota-project payflow-analytics-513907
 

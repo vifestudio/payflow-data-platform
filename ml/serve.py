@@ -5,9 +5,9 @@ Loads the trained pipeline once at startup and serves predictions in-memory.
 Called by the Kafka consumer for real-time scoring of every transaction.
 
 Endpoints:
-  POST /predict   — returns fraud probability for a single transaction
-  GET  /health    — liveness check
-  GET  /model     — model metadata
+  POST /predict:  returns fraud probability for a single transaction
+  GET  /health:   liveness check
+  GET  /model:    model metadata
 """
 import os
 from contextlib import asynccontextmanager
@@ -36,7 +36,7 @@ def decide(probability: float) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Model loaded once at startup — never on every request
+# Model loaded once at startup, never on every request
 # ---------------------------------------------------------------------------
 _pipeline = None
 

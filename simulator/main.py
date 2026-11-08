@@ -236,7 +236,7 @@ def wait_for_kafka(bootstrap, retries=15, delay=5):
         except Exception as e:
             log.warning(f"Kafka not ready, retry {i+1}/{retries}: {e}")
             time.sleep(delay)
-    log.warning("Could not connect to Kafka — running without streaming")
+    log.warning("Could not connect to Kafka, running without streaming")
     return None
 
 
@@ -247,7 +247,7 @@ def main():
     kafka_bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
     kafka_producer = wait_for_kafka(kafka_bootstrap) if kafka_bootstrap else None
     if not kafka_producer:
-        log.warning("KAFKA_BOOTSTRAP_SERVERS not set — no transactions will be published")
+        log.warning("KAFKA_BOOTSTRAP_SERVERS not set, no transactions will be published")
 
     log.info(f"Simulator started. Interval: {INTERVAL}s, Fraud rate: {FRAUD_RATE:.1%}")
 

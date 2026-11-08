@@ -109,7 +109,7 @@ CATEGORY_MULTIPLIER = {
     "tech":      2.5,   # Apple: CNP fraud on digital goods, no physical verification
     "streaming": 2.0,   # Netflix/Spotify: credential stuffing, account sharing schemes
     "travel":    1.8,   # Airbnb: high-value bookings, geo-inconsistent transactions
-    "retail":    1.0,   # Amazon/Walmart: baseline — mixed physical/digital risk
+    "retail":    1.0,   # Amazon/Walmart: baseline, mixed physical/digital risk
     "transport": 0.7,   # Uber: GPS-verified trips, partial physical check
     "food":      0.4,   # McDonald's: low-value, in-person POS, tap-to-pay
     "gas":       0.3,   # Shell: physical pump, chip+pin, low-value fills

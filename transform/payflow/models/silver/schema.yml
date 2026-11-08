@@ -5,7 +5,7 @@ models:
     description: >
       Cleaned account dimension. PII (email, holder_name) is SHA-256 hashed.
       Simulator generates CR-only accounts; country accepted_values reflects that
-      constraint — not a domain restriction.
+      constraint, not a domain restriction.
     columns:
       - name: account_id
         tests: [not_null, unique]
@@ -27,7 +27,7 @@ models:
   - name: silver_transactions
     description: >
       Cleaned transaction fact table. Materialized as incremental (delete+insert on
-      transaction_id) so each dbt run appends only new rows — Bronze accumulates
+      transaction_id) so each dbt run appends only new rows; Bronze accumulates
       history and Silver mirrors it. FX normalization to USD is a LEFT JOIN; rows
       with unsupported currencies land with amount_usd IS NULL and are excluded from
       ML training in train.py. merchant_clean comes from pgvector normalization via

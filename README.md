@@ -71,7 +71,7 @@ flowchart TD
     KC & API2 -.->|"lag · latency"| GRAF
 ```
 
-The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle — that feedback becomes part of the next training run, closing the loop.
+The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle; that feedback becomes part of the next training run, closing the loop.
 
 Gold data is loaded into BigQuery as the analytical warehouse after merchant names are normalized via pgvector. Looker Studio connects natively to BigQuery for dashboards and reporting.
 
@@ -142,10 +142,10 @@ R2 is S3-compatible with no egress fees, making it the right choice for a portfo
 The dataset is synthetic and small. DuckDB reads Parquet directly from R2 via the httpfs extension, executes dbt models, and writes Silver and Gold back to R2 without a cluster. For a production fintech at scale, the same Medallion models run on Spark or BigQuery with minimal changes to the SQL.
 
 **Data lake and analytical warehouse are separate layers.**
-Cloudflare R2 holds the full history as Delta Lake files — cheap, durable, queryable by DuckDB. BigQuery holds only the Gold tables, optimized for fast analytical queries and BI tools. This is the standard lakehouse pattern: the lake owns the data, the warehouse owns the queries. R2 is equivalent to S3 or GCS in this role; swapping it out requires no changes to the dbt or DuckDB layer.
+Cloudflare R2 holds the full history as Delta Lake files: cheap, durable, queryable by DuckDB. BigQuery holds only the Gold tables, optimized for fast analytical queries and BI tools. This is the standard lakehouse pattern: the lake owns the data, the warehouse owns the queries. R2 is equivalent to S3 or GCS in this role; swapping it out requires no changes to the dbt or DuckDB layer.
 
 **pgvector for merchant normalization, not for the fraud model.**
-Merchant names in the raw data are dirty: "Amazon", "AMAZON.COM", "AMZN Marketplace", and "amazon.com*Digital" are the same merchant. pgvector generates sentence-transformer embeddings for each raw name and finds the nearest canonical name by cosine similarity. This normalization runs in the Prefect pipeline before Gold is loaded into BigQuery, so Looker Studio dashboards show clean merchant names. The fraud model deliberately excludes merchant as a feature — dirty names at training time would not generalize to unseen variants at inference time.
+Merchant names in the raw data are dirty: "Amazon", "AMAZON.COM", "AMZN Marketplace", and "amazon.com*Digital" are the same merchant. pgvector generates sentence-transformer embeddings for each raw name and finds the nearest canonical name by cosine similarity. This normalization runs in the Prefect pipeline before Gold is loaded into BigQuery, so Looker Studio dashboards show clean merchant names. The fraud model deliberately excludes merchant as a feature; dirty names at training time would not generalize to unseen variants at inference time.
 
 **Model bootstrapped on a 100k historical seed.**
 A fraud model needs enough labeled history to learn from before it can score anything. The first model is trained on a one-time seed of 100,000 transactions spanning 365 days (`simulator/bulk_seed.py`), which gives it realistic fraud patterns and class balance from day one. This seed is a training bootstrap, not part of the runtime architecture: in steady state every transaction reaches Postgres only through the streaming path (Kafka to the fraud consumer), and scheduled retrains use the history that accumulates there.
@@ -157,17 +157,17 @@ The customer-facing approve/decline answer belongs to the operational plane: a p
 The batch pipeline trains the fraud model on historical Gold features. The streaming pipeline serves that same model for real-time decisions. MLflow is the bridge: batch registers a new version, FastAPI promotes it without redeployment. This is the standard MLOps pattern at any fintech operating at scale.
 
 **Silver is incremental; Gold is a full rebuild.**
-`silver_transactions` uses dbt's `delete+insert` incremental strategy: each run appends only new rows so Bronze history accumulates in Silver. Gold tables are rebuilt from scratch on every run because they are aggregates — recomputing them in full is cheaper than merging deltas and avoids stale rollup bugs.
+`silver_transactions` uses dbt's `delete+insert` incremental strategy: each run appends only new rows so Bronze history accumulates in Silver. Gold tables are rebuilt from scratch on every run because they are aggregates; recomputing them in full is cheaper than merging deltas and avoids stale rollup bugs.
 
 **MCC category yes, merchant name no.**
 The fraud model includes `mcc_category` and `risk_tier` as features but deliberately excludes `merchant` and `merchant_clean`. Merchant names in raw data are dirty: "Amazon", "AMAZON.COM", and "amzn marketplace" are the same merchant but would appear as three different categorical values to the model. Dirty names at training time would not generalize to unseen variants at inference time. MCC codes are stable, normalized via the `mcc_catalog` seed, and carry genuine signal about transaction risk.
 
 **Fraud scoring thresholds.**
-The ML service applies three thresholds to the model's output probability: `approve` (< 0.30), `review` (0.30–0.69), `decline` (≥ 0.70). These are configurable via environment variables (`REVIEW_THRESHOLD`, `DECLINE_THRESHOLD`). A separate `FRAUD_THRESHOLD` (default 0.50) controls the boolean `is_fraud` flag independently of the authorization decision — a transaction can be in `review` without being flagged as fraud yet.
+The ML service applies three thresholds to the model's output probability: `approve` (< 0.30), `review` (0.30–0.69), `decline` (≥ 0.70). These are configurable via environment variables (`REVIEW_THRESHOLD`, `DECLINE_THRESHOLD`). A separate `FRAUD_THRESHOLD` (default 0.50) controls the boolean `is_fraud` flag independently of the authorization decision; a transaction can be in `review` without being flagged as fraud yet.
 
 ## Evidence
 
-### Cloudflare R2 — Medallion lake structure
+### Cloudflare R2: Medallion lake structure
 
 Four layers live in R2 after a full pipeline run: `bronze/` (raw Parquet from Airbyte), `silver/` (cleaned, typed, deduplicated Delta Lake), `gold/` (aggregated ML-ready features), and `reference/` (merchant map written by pgvector normalization).
 
@@ -179,21 +179,21 @@ Three connections running every 6 hours: MongoDB, PayFlow FX Rates API (custom C
 
 ![Airbyte connections](docs/screenshots/airbyte-connections-phase2.png)
 
-### Kafka — 1,749 transactions in flight
+### Kafka: 1,749 transactions in flight
 
-Kafdrop shows the `transactions` topic with 1,749 messages and consumer group `fraud-scorer` at lag 0 — the streaming consumer is fully caught up. Each message carries the full transaction payload: `transaction_id`, `amount_usd`, behavioral features, and account metadata.
+Kafdrop shows the `transactions` topic with 1,749 messages and consumer group `fraud-scorer` at lag 0, meaning the streaming consumer is fully caught up. Each message carries the full transaction payload: `transaction_id`, `amount_usd`, behavioral features, and account metadata.
 
 ![Kafdrop topic overview](docs/screenshots/kafdrop-topic.png)
 
 ![Kafdrop messages](docs/screenshots/kafdrop-messages.png)
 
-### Prefect — full pipeline completed
+### Prefect: full pipeline completed
 
 End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`, `test-dbt`, `write-delta-lake`, `load-bigquery`. The Gantt shows each task's duration. dbt ran 16 models across staging, silver, and gold layers.
 
 ![Prefect pipeline completed](docs/screenshots/prefect-pipeline-completed.png)
 
-### MLflow — fraud detection model metrics
+### MLflow: fraud detection model metrics
 
 XGBoost pipeline trained on 80,007 transactions (time-based 80/20 split). Top features by importance: `device_type` (0.3947), `latency_ms` (0.3034), `amount_usd` (0.2043).
 
@@ -207,7 +207,7 @@ XGBoost pipeline trained on 80,007 transactions (time-based 80/20 split). Top fe
 
 ![MLflow run metrics](docs/screenshots/mlflow-fraud-run.png)
 
-### BigQuery — Gold tables loaded
+### BigQuery: Gold tables loaded
 
 > **Note:** BigQuery Sandbox datasets expire after 60 days. If the tables are gone, re-run `python transform/load_to_bigquery.py` after `gcloud auth application-default login`.
 
@@ -217,30 +217,30 @@ Six tables in the `payflow_analytics` dataset: `gold_fraud_features`, `gold_dail
 
 ![BigQuery gold data](docs/screenshots/bigquery-gold-data.png)
 
-### EDA — Gold fraud features
+### EDA: Gold fraud features
 
 Exploratory analysis over `gold_fraud_features` loaded from BigQuery into a Jupyter notebook ([`notebooks/eda_gold.ipynb`](notebooks/eda_gold.ipynb)).
 
 Sections:
 - Fraud rate trend: daily volume and fraud rate over 366 days
 - Amount distribution: fraud transactions skew toward the tails
-- Fraud rate by device type, MCC category, account type, and currency — the same features that drive the XGBoost model
+- Fraud rate by device type, MCC category, account type, and currency (the same features that drive the XGBoost model)
 - Fraud by hour of day
 - Fraud pattern breakdown (`card_testing`, `account_takeover`, etc.)
 - Numeric feature correlation matrix
 
 > **Note:** requires `gcloud auth application-default login` and the BigQuery Sandbox dataset to still be active. If the dataset expired, re-run `python transform/load_to_bigquery.py` first.
 
-### GitHub Actions CI — both jobs green
+### GitHub Actions CI: both jobs green
 
 `dbt parse` validates SQL and YAML on every push without touching R2. `dbt seed + run + test` runs on main with real R2 credentials. Total duration: 53s.
 
 ![GitHub Actions CI](docs/screenshots/github-actions-ci.png)
 
-### Grafana — pipeline observability
+### Grafana: pipeline observability
 
 ![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
 
-### Looker Studio — fraud analytics dashboard
+### Looker Studio: fraud analytics dashboard
 
 ![Looker Studio dashboard](docs/screenshots/looker-studio-dashboard.png)

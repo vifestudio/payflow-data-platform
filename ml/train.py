@@ -1,7 +1,7 @@
 """
 Train a fraud detection model on gold_fraud_features.
 
-Features (all behavioral — no PII, no merchant name):
+Features (all behavioral, no PII, no merchant name):
   amount_usd, hour_of_day, day_of_week, is_weekend,
   account_age_days, latency_ms, account_country, device_type, currency
 
@@ -106,7 +106,7 @@ def main():
     neg = (y_train == 0).sum()
     pos = (y_train == 1).sum()
     scale_pos_weight = neg / pos
-    print(f"  Class balance — neg: {neg:,} pos: {pos:,} (scale_pos_weight: {scale_pos_weight:.1f})")
+    print(f"  Class balance: neg={neg:,} pos={pos:,} (scale_pos_weight: {scale_pos_weight:.1f})")
 
     mlflow.set_tracking_uri(f"sqlite:///{ROOT / 'ml' / 'mlruns.db'}")
     mlflow.set_experiment("payflow-fraud-detection")
@@ -137,7 +137,7 @@ def main():
         mlflow.log_metric("fraud_recall",    round(report["fraud"]["recall"], 4))
         mlflow.log_metric("fraud_f1",        round(report["fraud"]["f1-score"], 4))
 
-        # Feature importance (XGBoost native — after preprocessing, features are reordered)
+        # Feature importance (XGBoost native, after preprocessing, features are reordered)
         booster = pipeline.named_steps["clf"]
         feat_names = CATEGORICAL_FEATURES + NUMERIC_FEATURES  # ColumnTransformer puts cats first
         importance = dict(zip(feat_names, booster.feature_importances_))
