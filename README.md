@@ -122,6 +122,9 @@ The simulator starts immediately and writes a batch every 5 minutes. FX rates ar
 
 ## Design decisions
 
+**PII is hashed before it leaves the operational database.**
+`email` and `holder_name` are SHA-256 hashed in `silver_accounts` before the data moves to R2 or BigQuery. The raw values exist only in PostgreSQL (the operational system of record). In production, the hash would use a secret salt to prevent rainbow-table reversal; this project omits the salt as a portfolio simplification but preserves the correct architectural boundary: PII never reaches the lakehouse or the analytical warehouse in plaintext.
+
 **fraud_labels lives in a separate table.**
 In production, fraud truth arrives days or weeks after the transaction via chargebacks and analyst review, never at payment time. Embedding it in `transactions` would create data leakage for any downstream ML model and misrepresents how fintech data actually flows.
 

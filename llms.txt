@@ -46,6 +46,9 @@ docs/screenshots/    Evidence screenshots
 
 ## Key design decisions
 
+- PII hashed before the lakehouse: email and holder_name are SHA-256 hashed in
+  silver_accounts; raw values stay in PostgreSQL only. Salt omitted as portfolio
+  simplification but the architectural boundary is correct.
 - fraud_labels is a separate table: ground truth arrives days later via chargebacks,
   not at payment time. Embedding it in transactions creates ML leakage.
 - silver_transactions is incremental (delete+insert); Gold is full rebuild each run.
