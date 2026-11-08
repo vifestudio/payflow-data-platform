@@ -70,6 +70,18 @@ services:
       retries: 10
       start_period: 30s
 
+  kafdrop:
+    image: obsidiandynamics/kafdrop:4.0.2
+    container_name: payflow-kafdrop
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
   simulator:
     build: ./simulator
     container_name: payflow-simulator

@@ -152,16 +152,77 @@ The customer-facing approve/decline answer belongs to the operational plane: a p
 **Two pipelines, one model.**
 The batch pipeline trains the fraud model on historical Gold features. The streaming pipeline serves that same model for real-time decisions. MLflow is the bridge: batch registers a new version, FastAPI promotes it without redeployment. This is the standard MLOps pattern at any fintech operating at scale.
 
+**Silver is incremental; Gold is a full rebuild.**
+`silver_transactions` uses dbt's `delete+insert` incremental strategy: each run appends only new rows so Bronze history accumulates in Silver. Gold tables are rebuilt from scratch on every run because they are aggregates — recomputing them in full is cheaper than merging deltas and avoids stale rollup bugs.
+
+**MCC category yes, merchant name no.**
+The fraud model includes `mcc_category` and `risk_tier` as features but deliberately excludes `merchant` and `merchant_clean`. Merchant names in raw data are dirty: "Amazon", "AMAZON.COM", and "amzn marketplace" are the same merchant but would appear as three different categorical values to the model. Dirty names at training time would not generalize to unseen variants at inference time. MCC codes are stable, normalized via the `mcc_catalog` seed, and carry genuine signal about transaction risk.
+
+**Fraud scoring thresholds.**
+The ML service applies three thresholds to the model's output probability: `approve` (< 0.30), `review` (0.30–0.69), `decline` (≥ 0.70). These are configurable via environment variables (`REVIEW_THRESHOLD`, `DECLINE_THRESHOLD`). A separate `FRAUD_THRESHOLD` (default 0.50) controls the boolean `is_fraud` flag independently of the authorization decision — a transaction can be in `review` without being flagged as fraud yet.
+
 ## Evidence
 
-### Bronze layer live in Cloudflare R2
+### Cloudflare R2 — Medallion lake structure
 
-22 MB across three source folders after the first Airbyte sync. All streams landed as Parquet: accounts, transactions, fraud_labels from Postgres; telemetry_events from MongoDB; fx_rates from the custom CDK connector.
+Four layers live in R2 after a full pipeline run: `bronze/` (raw Parquet from Airbyte), `silver/` (cleaned, typed, deduplicated Delta Lake), `gold/` (aggregated ML-ready features), and `reference/` (merchant map written by pgvector normalization).
 
-![R2 Bronze layer](docs/screenshots/bronze-r2-phase2.png)
+![R2 lake structure](docs/screenshots/r2-lake-structure.png)
 
 ### Airbyte connections all green
 
 Three connections running every 6 hours: MongoDB, PayFlow FX Rates API (custom CDK connector), Postgres. All enabled, all healthy.
 
 ![Airbyte connections](docs/screenshots/airbyte-connections-phase2.png)
+
+### Kafka — 1,749 transactions in flight
+
+Kafdrop shows the `transactions` topic with 1,749 messages and consumer group `fraud-scorer` at lag 0 — the streaming consumer is fully caught up. Each message carries the full transaction payload: `transaction_id`, `amount_usd`, behavioral features, and account metadata.
+
+![Kafdrop topic overview](docs/screenshots/kafdrop-topic.png)
+
+![Kafdrop messages](docs/screenshots/kafdrop-messages.png)
+
+### Prefect — full pipeline completed
+
+End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`, `test-dbt`, `write-delta-lake`, `load-bigquery`. The Gantt shows each task's duration. dbt ran 16 models across staging, silver, and gold layers.
+
+![Prefect pipeline completed](docs/screenshots/prefect-pipeline-completed.png)
+
+### MLflow — fraud detection model metrics
+
+XGBoost pipeline trained on 80,007 transactions (time-based 80/20 split). Top features by importance: `device_type` (0.3947), `latency_ms` (0.3034), `amount_usd` (0.2043).
+
+| Metric | Value |
+| --- | --- |
+| ROC-AUC | 0.9963 |
+| Accuracy | 0.9897 |
+| Fraud Precision | 0.9762 |
+| Fraud Recall | 0.9731 |
+| Fraud F1 | 0.9746 |
+
+![MLflow run metrics](docs/screenshots/mlflow-fraud-run.png)
+
+### BigQuery — Gold tables loaded
+
+> **Note:** BigQuery Sandbox datasets expire after 60 days. If the tables are gone, re-run `python transform/load_to_bigquery.py` after `gcloud auth application-default login`.
+
+Six tables in the `payflow_analytics` dataset: `gold_fraud_features`, `gold_daily_summary`, `gold_merchant_stats`, `dim_accounts`, `mart_fraud_by_merchant`, `mart_fraud_daily`. Loaded from DuckDB Gold layer via `load_to_bigquery.py` using Application Default Credentials.
+
+![BigQuery tables](docs/screenshots/bigquery-tables.png)
+
+![BigQuery gold data](docs/screenshots/bigquery-gold-data.png)
+
+### GitHub Actions CI — both jobs green
+
+`dbt parse` validates SQL and YAML on every push without touching R2. `dbt seed + run + test` runs on main with real R2 credentials. Total duration: 53s.
+
+![GitHub Actions CI](docs/screenshots/github-actions-ci.png)
+
+### Grafana — pipeline observability
+
+![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
+
+### Looker Studio — fraud analytics dashboard
+
+![Looker Studio dashboard](docs/screenshots/looker-studio-dashboard.png)

@@ -1,0 +1,65 @@
+# PayFlow Data Platform
+
+End-to-end data engineering platform for a fictional digital-payments fintech.
+Synthetic data, 100% open-source stack, two parallel pipelines (batch + streaming).
+
+## Purpose
+
+Portfolio project demonstrating production data engineering patterns:
+medallion lakehouse, real-time fraud scoring, ML feedback loop, pipeline orchestration.
+
+## Stack
+
+- Simulation: Python, Faker, NumPy (simulator/)
+- Sources: PostgreSQL 16 (pgvector), MongoDB 7, FastAPI FX rates API
+- Ingestion: Airbyte (incremental CDC + full-refresh)
+- Lakehouse: Cloudflare R2 (Parquet + Delta Lake)
+- Transform: dbt + DuckDB (httpfs reads Parquet directly from R2)
+- Orchestration: Prefect 3 (hourly batch pipeline)
+- ML: XGBoost + scikit-learn + MLflow (SQLite tracking)
+- Streaming: Apache Kafka + kafka-python consumer
+- Merchant normalization: pgvector + sentence-transformers embeddings
+- Warehouse: BigQuery (payflow_analytics dataset)
+- BI: Looker Studio
+- Observability: Grafana
+- CI: GitHub Actions (dbt parse on every push, dbt test on main)
+
+## Repository layout
+
+simulator/           Synthetic transaction + fraud event generator (bulk_seed.py for bootstrap)
+sources/postgres/    PostgreSQL schema: accounts, transactions, fraud_labels, fraud_scores
+sources/fx-api/      FX rates microservice (FastAPI, port 8001)
+ingestion/           Airbyte connection definitions
+transform/           dbt project (payflow/): staging → silver → gold → marts
+  models/staging/    Raw Bronze reads via DuckDB httpfs
+  models/silver/     Typed, deduplicated, FX-normalized, PII-hashed (incremental)
+  models/gold/       ML features + aggregates (full rebuild each run)
+  models/marts/      BI-ready aggregates for Looker Studio
+  seeds/             mcc_catalog.csv (981 MCC codes with risk_tier)
+  tests/             Singular tests: fraud_rate bounds, amount_usd coverage
+orchestration/       Prefect flows: normalize_merchants → dbt → BigQuery
+ml/                  XGBoost training (train.py), FastAPI scoring service (serve.py)
+  mlruns.db          MLflow SQLite tracking store
+streaming/           Kafka producer (simulator) + fraud consumer (writes to Postgres)
+scripts/             Utilities: abort_multipart.py, generate_mcc_catalog.py
+docs/screenshots/    Evidence screenshots
+
+## Key design decisions
+
+- fraud_labels is a separate table: ground truth arrives days later via chargebacks,
+  not at payment time. Embedding it in transactions creates ML leakage.
+- silver_transactions is incremental (delete+insert); Gold is full rebuild each run.
+- DuckDB reads Parquet from R2 via httpfs — no data movement, no cluster needed.
+- pgvector normalizes merchant names before Gold is loaded to BigQuery.
+- merchant excluded from ML features; mcc_category included instead — dirty name
+  variants at training time would not generalize to unseen variants at inference.
+- Fraud scoring thresholds: approve < 0.30, review 0.30–0.69, decline >= 0.70.
+  FRAUD_THRESHOLD (0.50) is independent and used only for the is_fraud boolean.
+- BigQuery Sandbox (free tier) expires 60 days after dataset creation.
+  Re-run: python transform/load_to_bigquery.py
+
+## CI
+
+GitHub Actions (.github/workflows/ci.yml):
+- dbt-parse: runs on every push/PR, placeholder R2 credentials, validates SQL/YAML
+- dbt-test: runs on main only, uses real R2 secrets, runs seed + run + test

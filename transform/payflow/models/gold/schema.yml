@@ -2,6 +2,15 @@ version: 2
 
 models:
   - name: gold_fraud_features
+    description: >
+      ML-ready feature table rebuilt from scratch on every dbt run (full table
+      replacement, not incremental). Joins silver_transactions with
+      silver_fraud_labels, silver_telemetry_events, and silver_accounts to produce
+      one row per transaction with all behavioral features. merchant and merchant_clean
+      are excluded from ML features intentionally — dirty name variants at training
+      time would not generalize to unseen variants at inference time. mcc_category
+      and risk_tier are included instead, derived from the normalized canonical
+      merchant via the mcc_catalog seed.
     columns:
       - name: transaction_id
         tests: [not_null, unique]
@@ -19,6 +28,9 @@ models:
         tests: [not_null]
 
   - name: gold_daily_summary
+    description: >
+      Daily aggregate of transactions and fraud metrics. Rebuilt in full on every
+      dbt run. Used by Looker Studio for time-series dashboards.
     columns:
       - name: transaction_date
         tests: [not_null, unique]
@@ -32,6 +44,10 @@ models:
         tests: [not_null]
 
   - name: gold_merchant_stats
+    description: >
+      Per-merchant aggregate with fraud rate and volume. Uses canonical merchant
+      names from pgvector normalization, so "AMAZON.COM", "Amazon", and
+      "amzn marketplace" all roll up to "Amazon".
     columns:
       - name: merchant
         tests: [not_null]

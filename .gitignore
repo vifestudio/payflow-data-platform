@@ -30,7 +30,14 @@ data/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/ml/model/
-ml/mlruns/
-ml/mlflow.db
+.vscode/
 desktop.ini
+
+# ML artifacts
+ml/model/
+ml/mlruns/
+ml/mlruns.db
+*.db
+
+# dbt user config
+transform/payflow/.user.yml

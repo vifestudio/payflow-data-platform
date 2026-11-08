@@ -108,8 +108,7 @@ def main():
     scale_pos_weight = neg / pos
     print(f"  Class balance — neg: {neg:,} pos: {pos:,} (scale_pos_weight: {scale_pos_weight:.1f})")
 
-    os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
-    mlflow.set_tracking_uri(str(ROOT / "ml" / "mlruns"))
+    mlflow.set_tracking_uri(f"sqlite:///{ROOT / 'ml' / 'mlruns.db'}")
     mlflow.set_experiment("payflow-fraud-detection")
 
     with mlflow.start_run():
@@ -162,7 +161,7 @@ def main():
         MODEL_DIR.mkdir(parents=True, exist_ok=True)
         joblib.dump(pipeline, MODEL_PATH)
         print(f"\nModel saved to {MODEL_PATH}")
-        print("Run `mlflow ui --backend-store-uri ml/mlruns` to explore metrics.")
+        print("Run `mlflow ui --backend-store-uri sqlite:///ml/mlruns.db` to explore metrics.")
 
 
 if __name__ == "__main__":

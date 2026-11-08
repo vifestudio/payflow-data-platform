@@ -10,6 +10,7 @@ Endpoints:
   GET  /model     — model metadata
 """
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import joblib
@@ -33,7 +34,6 @@ def decide(probability: float) -> str:
         return "review"
     return "approve"
 
-app = FastAPI(title="PayFlow Fraud Scoring API", version="1.0.0")
 
 # ---------------------------------------------------------------------------
 # Model loaded once at startup — never on every request
@@ -41,12 +41,16 @@ app = FastAPI(title="PayFlow Fraud Scoring API", version="1.0.0")
 _pipeline = None
 
 
-@app.on_event("startup")
-def load_model():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global _pipeline
     if not MODEL_PATH.exists():
         raise RuntimeError(f"Model not found at {MODEL_PATH}. Run ml/train.py first.")
     _pipeline = joblib.load(MODEL_PATH)
+    yield
+
+
+app = FastAPI(title="PayFlow Fraud Scoring API", version="1.0.0", lifespan=lifespan)
 
 
 # ---------------------------------------------------------------------------
