@@ -29,7 +29,6 @@ LEFT JOIN {{ ref('stg_transactions') }} t
     ON te.transaction_id = t.transaction_id
 LEFT JOIN {{ ref('stg_accounts') }} a
     ON t.account_id = a.account_id
-WHERE te._ab_cdc_deleted_at IS NULL
 {% if is_incremental() %}
-AND te.timestamp::TIMESTAMP > (SELECT MAX(event_at) FROM {{ this }})
+WHERE te.timestamp::TIMESTAMP > (SELECT MAX(event_at) FROM {{ this }})
 {% endif %}

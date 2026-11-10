@@ -7,6 +7,8 @@ SELECT
     transaction_id,
     account_id,
     merchant_clean,
+    mcc_category,
+    risk_tier,
     transaction_date,
     hour_of_day,
     currency,

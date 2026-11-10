@@ -48,8 +48,9 @@ flowchart TD
     NLQ["NL query · Gemini in BigQuery"]
 
     subgraph OPS["Orchestration & Observability"]
-        PREF["Prefect\nhourly orchestration"]
-        GRAF["Grafana\nobservability · dashboards"]
+        PREF["Prefect\nbatch orchestration"]
+        PROM["Prometheus\nmetrics scrape"]
+        GRAF["Grafana\nstreaming dashboards"]
     end
 
     S -->|"publishes event"| KP --> KB --> KC
@@ -66,12 +67,11 @@ flowchart TD
 
     G --> BQ --> LS & TB & PB & NLQ
 
-    PREF -. "triggers" .-> AB & VEC & DBT & ML
-    PREF -.->|"run metrics"| GRAF
-    KC & API2 -.->|"lag · latency"| GRAF
+    PREF -. "triggers" .-> AB & VEC & DBT & ML & BQ
+    KC & API2 -.->|"lag · latency"| PROM --> GRAF
 ```
 
-The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle; that feedback becomes part of the next training run, closing the loop.
+The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle; that feedback becomes part of the next training run, closing the loop. Retraining is automatic: the last step of every Prefect run counts how many new rows have accumulated in `gold_fraud_features` since the previous training and triggers `train.py` whenever the threshold is met (default 1,000 rows, configurable via `MIN_RETRAIN_ROWS`). The checkpoint is stored in `ml/last_trained_rows.txt`.
 
 Gold data is loaded into BigQuery as the analytical warehouse after merchant names are normalized via pgvector. Looker Studio connects natively to BigQuery for dashboards and reporting.
 
@@ -90,7 +90,7 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 | Merchant normalization | pgvector + sentence-transformers |
 | Analytical warehouse | BigQuery |
 | BI | Looker Studio |
-| Observability | Grafana |
+| Observability | Prefect UI (batch) + Grafana / Prometheus (streaming) |
 | Data quality | dbt tests |
 | CI | GitHub Actions |
 
@@ -98,16 +98,17 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 
 | Path | Role |
 | --- | --- |
-| `simulator/` | Synthetic transaction and fraud generator |
-| `sources/postgres/` | Schema: accounts, transactions, fraud_labels |
+| `simulator/` | Synthetic transaction and fraud generator (`bulk_seed.py` for the historical bootstrap) |
+| `sources/postgres/` | Schema: accounts, transactions, fraud_labels, fraud_scores |
 | `sources/fx-api/` | FX rates microservice (FastAPI, port 8001) |
-| `ingestion/` | Airbyte connection definitions |
-| `transform/` | dbt project: Bronze → Silver → Gold |
-| `orchestration/` | Prefect flows |
-| `serving/` | FastAPI: /predict, /search, vector search |
-| `streaming/` | Kafka producer and fraud consumer |
+| `ingestion/fx-connector/` | Custom Airbyte CDK connector for the FX API |
+| `transform/` | dbt project: Bronze → Silver → Gold → marts |
+| `orchestration/` | Prefect flow: normalize → dbt → write-delta → BigQuery |
+| `ml/` | XGBoost training (`train.py`) and FastAPI scoring service (`serve.py`) |
+| `streaming/` | Kafka fraud consumer: scores each transaction, writes to Postgres |
+| `infra/` | Prometheus scrape config and Grafana dashboards for the streaming plane |
 | `notebooks/` | EDA over Gold tables (BigQuery) |
-| `infra/` | docker-compose, env templates |
+| `scripts/` | Utilities: `abort_multipart.py`, `generate_mcc_catalog.py` |
 
 ## Running locally
 
@@ -119,7 +120,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The simulator starts immediately and writes a batch every 5 minutes. FX rates are available at `http://localhost:8001/rates`. Airbyte runs at `http://localhost:8000`.
+The simulator starts immediately and writes a batch every 5 minutes. FX rates are available at `http://localhost:8001/rates`, Airbyte runs at `http://localhost:8000`, and the streaming dashboards are at `http://localhost:3001` (Grafana) over `http://localhost:9090` (Prometheus).
 
 ## Design decisions
 
@@ -130,7 +131,7 @@ The simulator starts immediately and writes a batch every 5 minutes. FX rates ar
 In production, fraud truth arrives days or weeks after the transaction via chargebacks and analyst review, never at payment time. Embedding it in `transactions` would create data leakage for any downstream ML model and misrepresents how fintech data actually flows.
 
 **Incremental sync for transactional tables, full refresh for telemetry.**
-`accounts`, `transactions`, and `fraud_labels` use incremental append in Airbyte: each sync adds only new records, so Bronze accumulates history. `telemetry_events` uses full refresh because MongoDB overwrites the collection on each run and historical event logs have no business value at this scale.
+`accounts`, `transactions`, and `fraud_labels` use incremental append in Airbyte (the Postgres source tracks new rows by `xmin`), so each sync adds only new records and Bronze accumulates history. `telemetry_events` uses full refresh: the MongoDB source runs as a standalone instance, so Airbyte's change-stream (CDC) incremental, which requires a replica set, is not available; at this event volume a full reload each sync is cheap and keeps the connector simple. dbt then deduplicates and accumulates telemetry in the Silver layer regardless of the Bronze sync mode.
 
 **FX rates ingested via Airbyte Connector Builder, not written to Postgres.**
 The FX API simulates an external data provider. In production you would never ask a third-party API to write directly to your database; you build a connector that pulls from it on a schedule. The Connector Builder approach reflects that boundary correctly and demonstrates custom connector development.
@@ -147,14 +148,14 @@ Cloudflare R2 holds the full history as Delta Lake files: cheap, durable, querya
 **pgvector for merchant normalization, not for the fraud model.**
 Merchant names in the raw data are dirty: "Amazon", "AMAZON.COM", "AMZN Marketplace", and "amazon.com*Digital" are the same merchant. pgvector generates sentence-transformer embeddings for each raw name and finds the nearest canonical name by cosine similarity. This normalization runs in the Prefect pipeline before Gold is loaded into BigQuery, so Looker Studio dashboards show clean merchant names. The fraud model deliberately excludes merchant as a feature; dirty names at training time would not generalize to unseen variants at inference time.
 
-**Model bootstrapped on a 100k historical seed.**
-A fraud model needs enough labeled history to learn from before it can score anything. The first model is trained on a one-time seed of 100,000 transactions spanning 365 days (`simulator/bulk_seed.py`), which gives it realistic fraud patterns and class balance from day one. This seed is a training bootstrap, not part of the runtime architecture: in steady state every transaction reaches Postgres only through the streaming path (Kafka to the fraud consumer), and scheduled retrains use the history that accumulates there.
+**Model bootstrapped on a 200k historical seed, then retrained automatically.**
+A fraud model needs enough labeled history to learn from before it can score anything. The first model is trained on a one-time seed of 200,000 transactions spanning 365 days (`simulator/bulk_seed.py`). Fraud is skewed by merchant category the way real card-testing is: digital-goods merchants (gaming, software, streaming) carry a high fraud rate while in-person, low-value categories (fuel, food) stay near zero, so the labels have genuine structure instead of uniform noise. After bootstrap, every Prefect pipeline run checks whether `gold_fraud_features` has grown by at least `MIN_RETRAIN_ROWS` (default 1,000) since the last training. When the threshold is met, `train.py` runs automatically as the final pipeline step, logs the new run to MLflow, and overwrites `ml/model/fraud_pipeline.joblib`. The FastAPI scoring service reloads the model on the next request because it loads the artifact at startup; to pick up the new artifact without downtime, the service is restarted by the pipeline after training via a `docker compose restart ml-service` call. The checkpoint (`ml/last_trained_rows.txt`) persists between runs so the trigger is monotonic: each retrain builds on more labeled history than the last.
 
 **Synchronous authorization vs asynchronous analytics.**
 The customer-facing approve/decline answer belongs to the operational plane: a payments backend would call the fraud scoring API (`/predict`) synchronously and return the decision in the same request, in milliseconds, while persisting the transaction and its decision to Postgres. The lakehouse (R2) and warehouse (BigQuery) are never in that request path; they are the analytical plane that Airbyte populates downstream for monitoring, dashboards and retraining. This project implements the data engineering side: real-time scoring, the batch lakehouse, and the warehouse. The authorization backend itself (an `/authorize` endpoint that returns the decision to the client) is backend engineering and is intentionally out of scope, noted here to show where the data pipeline fits in the full system.
 
 **Two pipelines, one model.**
-The batch pipeline trains the fraud model on historical Gold features. The streaming pipeline serves that same model for real-time decisions. MLflow is the bridge: batch registers a new version, FastAPI promotes it without redeployment. This is the standard MLOps pattern at any fintech operating at scale.
+The batch pipeline trains the fraud model on historical Gold features; the streaming pipeline serves that same artifact for real-time decisions. `train.py` logs every run to MLflow (metrics, params, feature importances) and writes the fitted pipeline to `ml/model/`, which the FastAPI service loads at startup. In production MLflow's model registry would gate promotion between the two; here the file handoff keeps the same train-once, serve-many boundary without the extra registry infrastructure.
 
 **Silver is incremental; Gold is a full rebuild.**
 `silver_transactions` uses dbt's `delete+insert` incremental strategy: each run appends only new rows so Bronze history accumulates in Silver. Gold tables are rebuilt from scratch on every run because they are aggregates; recomputing them in full is cheaper than merging deltas and avoids stale rollup bugs.
@@ -193,17 +194,25 @@ End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`,
 
 ![Prefect pipeline completed](docs/screenshots/prefect-pipeline-completed.png)
 
+### Grafana: real-time streaming observability
+
+Prefect covers the batch plane; Grafana covers the streaming plane. The fraud consumer and the `/predict` service expose Prometheus metrics that Grafana renders live: `/predict` latency (p50/p95), scoring throughput by decision, Kafka consumer lag, and the approve/review/decline split. Metrics, scrape config and the provisioned dashboard live in `infra/`.
+
+![Grafana streaming dashboard](docs/screenshots/grafana-streaming.png)
+
 ### MLflow: fraud detection model metrics
 
-XGBoost pipeline trained on 80,007 transactions (time-based 80/20 split). Top features by importance: `device_type` (0.3947), `latency_ms` (0.3034), `amount_usd` (0.2043).
+XGBoost pipeline trained on 160,000 transactions (time-based 80/20 split, 40,000 held out). Top features by importance: `latency_ms` (0.36), `amount_usd` (0.35), `currency` (0.21).
 
 | Metric | Value |
 | --- | --- |
-| ROC-AUC | 0.9963 |
-| Accuracy | 0.9897 |
-| Fraud Precision | 0.9762 |
-| Fraud Recall | 0.9731 |
-| Fraud F1 | 0.9746 |
+| ROC-AUC | 0.9948 |
+| Accuracy | 0.9861 |
+| Fraud Precision | 0.926 |
+| Fraud Recall | 0.969 |
+| Fraud F1 | 0.947 |
+
+> **On the high scores:** fraud concentrates in card-testing bursts on digital-goods merchants, and those bursts carry a clear behavioral signature (tiny amounts, low latency) that the model picks up even though it never sees the merchant or MCC category. The ~0.99 ROC-AUC reflects that learnable synthetic signature, not real-world fraud difficulty, where precision and recall are far harder to move; precision here already sits at 0.93, not a perfect score. What carries over to a real dataset is the methodology: a time-based split to prevent leakage, `scale_pos_weight` for class imbalance, and no PII or merchant-name features.
 
 ![MLflow run metrics](docs/screenshots/mlflow-fraud-run.png)
 
@@ -211,7 +220,7 @@ XGBoost pipeline trained on 80,007 transactions (time-based 80/20 split). Top fe
 
 > **Note:** BigQuery Sandbox datasets expire after 60 days. If the tables are gone, re-run `python transform/load_to_bigquery.py` after `gcloud auth application-default login`.
 
-Six tables in the `payflow_analytics` dataset: `gold_fraud_features`, `gold_daily_summary`, `gold_merchant_stats`, `dim_accounts`, `mart_fraud_by_merchant`, `mart_fraud_daily`. Loaded from DuckDB Gold layer via `load_to_bigquery.py` using Application Default Credentials.
+Nine tables in the `payflow_analytics` dataset: the Gold feature tables (`gold_fraud_features`, `gold_daily_summary`, `gold_merchant_stats`), the star schema (`fct_transactions`, `dim_merchants`, `dim_date`, `dim_accounts`), and the BI marts (`mart_fraud_by_merchant`, `mart_fraud_daily`). Loaded from the DuckDB Gold/mart layer via `load_to_bigquery.py` using Application Default Credentials.
 
 ![BigQuery tables](docs/screenshots/bigquery-tables.png)
 
@@ -226,7 +235,7 @@ Sections:
 - Amount distribution: fraud transactions skew toward the tails
 - Fraud rate by device type, MCC category, account type, and currency (the same features that drive the XGBoost model)
 - Fraud by hour of day
-- Fraud pattern breakdown (`card_testing`, `account_takeover`, etc.)
+- Fraud pattern breakdown (`card_testing`, `geo_impossible`, `amount_anomaly`)
 - Numeric feature correlation matrix
 
 > **Note:** requires `gcloud auth application-default login` and the BigQuery Sandbox dataset to still be active. If the dataset expired, re-run `python transform/load_to_bigquery.py` first.
@@ -236,10 +245,6 @@ Sections:
 `dbt parse` validates SQL and YAML on every push without touching R2. `dbt seed + run + test` runs on main with real R2 credentials. Total duration: 53s.
 
 ![GitHub Actions CI](docs/screenshots/github-actions-ci.png)
-
-### Grafana: pipeline observability
-
-![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
 
 ### Looker Studio: fraud analytics dashboard
 

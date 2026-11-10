@@ -134,6 +134,9 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       ML_SERVICE_URL: http://ml-service:8010
       POSTGRES_HOST: postgres
+      CONSUMER_METRICS_PORT: "9108"
+    ports:
+      - "9108:9108"
     depends_on:
       postgres:
         condition: service_healthy
@@ -143,6 +146,36 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  # Observability for the real-time streaming plane (Prefect covers the batch plane).
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: payflow-prometheus
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: payflow-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   mongo_data:
+  grafana_data:

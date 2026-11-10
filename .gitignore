@@ -23,7 +23,8 @@ logs/
 # DuckDB / data local
 *.duckdb
 *.duckdb.wal
-data/
+data/*
+!data/mcc_codes.json
 *.parquet
 
 # OS / editor

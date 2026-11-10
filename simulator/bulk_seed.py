@@ -52,8 +52,8 @@ MONGO_URI = (
     f"@mongo:{os.getenv('MONGO_PORT', '27017')}/?authSource=admin"
 )
 
-FRAUD_RATE        = float(os.getenv("SIM_FRAUD_RATE", "0.015"))
-MAX_FRAUD_RATE    = 0.25   # cap so no single segment exceeds 25%
+FRAUD_RATE        = float(os.getenv("SIM_FRAUD_RATE", "0.08"))
+MAX_FRAUD_RATE    = 0.70   # allow high-risk categories to reach realistic peaks
 DAYS_BACK         = 365
 BATCH_SIZE        = 500
 ACCOUNT_POOL_SIZE = 3000
@@ -105,14 +105,14 @@ MERCHANT_CATEGORY = {
 
 # Fraud likelihood multiplier per merchant category (baseline = retail = 1.0)
 CATEGORY_MULTIPLIER = {
-    "gaming":    3.0,   # Steam: automated card testing, stolen card inventory
-    "tech":      2.5,   # Apple: CNP fraud on digital goods, no physical verification
-    "streaming": 2.0,   # Netflix/Spotify: credential stuffing, account sharing schemes
-    "travel":    1.8,   # Airbnb: high-value bookings, geo-inconsistent transactions
+    "gaming":    7.0,   # Steam: automated card testing, stolen card inventory
+    "tech":      5.5,   # Apple: CNP fraud on digital goods, no physical verification
+    "streaming": 3.5,   # Netflix/Spotify: credential stuffing, account sharing schemes
+    "travel":    2.5,   # Airbnb: high-value bookings, geo-inconsistent transactions
     "retail":    1.0,   # Amazon/Walmart: baseline, mixed physical/digital risk
-    "transport": 0.7,   # Uber: GPS-verified trips, partial physical check
-    "food":      0.4,   # McDonald's: low-value, in-person POS, tap-to-pay
-    "gas":       0.3,   # Shell: physical pump, chip+pin, low-value fills
+    "transport": 0.4,   # Uber: GPS-verified trips, partial physical check
+    "food":      0.12,  # McDonald's: low-value, in-person POS, tap-to-pay
+    "gas":       0.08,  # Shell: physical pump, chip+pin, low-value fills
 }
 
 # (lat, lon) for geo_impossible second transaction - physically far from Costa Rica
@@ -275,17 +275,22 @@ def build_normal_transaction(account_id, is_fraud, pattern, canonical=None, dirt
     }
 
 
-def build_card_testing_burst(account_id):
-    """10-20 small transactions from same account within 5 minutes."""
+def build_card_testing_burst(account_id, canonical):
+    """10-20 small transactions from same account within 5 minutes.
+
+    The whole burst stays on the merchant that triggered the fraud decision, so
+    card-testing fraud concentrates in its category instead of smearing across
+    random merchants (which would flatten the per-category fraud rate).
+    """
     base_time = random_timestamp_with_peaks()
-    n = random.randint(10, 20)
+    n = random.randint(3, 8)
     rows = []
     for _ in range(n):
         txn_id = fake.uuid4()
         offset = timedelta(seconds=random.randint(0, 300))
         ts = base_time + offset
         amount = round(random.uniform(0.50, 5.00), 2)
-        canonical, dirty = pick_dirty_merchant()
+        dirty = random.choice(MERCHANT_VARIANTS[canonical])
         rows.append({
             "txn": (txn_id, account_id, dirty, amount, random.choice(CURRENCIES), "confirmed", ts),
             "tel": {
@@ -397,7 +402,7 @@ def seed(total_rows):
             pattern = category_pattern_for(canonical)
 
             if pattern == "card_testing" and remaining >= 10:
-                rows = build_card_testing_burst(account_id)
+                rows = build_card_testing_burst(account_id, canonical)
             elif pattern == "geo_impossible" and remaining >= 2:
                 rows = build_geo_impossible_pair(account_id)
             else:

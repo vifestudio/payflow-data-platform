@@ -16,8 +16,24 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, Field, field_validator
+
+# Prometheus metrics scraped at /metrics (Grafana streaming dashboard).
+PREDICT_LATENCY = Histogram(
+    "payflow_predict_latency_seconds",
+    "Latency of the /predict fraud-scoring call",
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0),
+)
+PREDICTIONS = Counter(
+    "payflow_predictions_total", "Predictions served, by decision", ["decision"]
+)
+FRAUD_PROBABILITY = Histogram(
+    "payflow_fraud_probability",
+    "Distribution of model fraud probabilities",
+    buckets=(0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 1.0),
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = ROOT / "ml" / "model" / "fraud_pipeline.joblib"
@@ -102,6 +118,11 @@ def health():
     return {"status": "ok", "model_loaded": _pipeline is not None}
 
 
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.get("/model")
 def model_info():
     return {
@@ -134,9 +155,12 @@ def predict(txn: TransactionIn):
         "currency":         txn.currency,
     }])
 
-    probability = float(_pipeline.predict_proba(row)[0, 1])
+    with PREDICT_LATENCY.time():
+        probability = float(_pipeline.predict_proba(row)[0, 1])
     decision = decide(probability)
     is_fraud = probability >= FRAUD_THRESHOLD
+    PREDICTIONS.labels(decision=decision).inc()
+    FRAUD_PROBABILITY.observe(probability)
 
     return PredictionOut(
         transaction_id=txn.transaction_id,

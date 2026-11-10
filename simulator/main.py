@@ -74,18 +74,22 @@ MERCHANT_CATEGORY = {
     "Steam":       "gaming",
 }
 
+# Relative fraud skew per merchant category, kept identical to bulk_seed.py so the
+# live stream reinforces the same pattern the historical bootstrap established.
+# The base rate (SIM_FRAUD_RATE) is lower in steady state than in the seed; the
+# multipliers below set the shape, not the absolute level.
 CATEGORY_MULTIPLIER = {
-    "gaming":    3.0,
-    "tech":      2.5,
-    "streaming": 2.0,
-    "travel":    1.8,
-    "retail":    1.0,
-    "transport": 0.7,
-    "food":      0.4,
-    "gas":       0.3,
+    "gaming":    7.0,   # Steam: automated card testing, stolen card inventory
+    "tech":      5.5,   # Apple: CNP fraud on digital goods, no physical verification
+    "streaming": 3.5,   # Netflix/Spotify: credential stuffing, account sharing schemes
+    "travel":    2.5,   # Airbnb: high-value bookings, geo-inconsistent transactions
+    "retail":    1.0,   # Amazon/Walmart: baseline, mixed physical/digital risk
+    "transport": 0.4,   # Uber: GPS-verified trips, partial physical check
+    "food":      0.12,  # McDonald's: low-value, in-person POS, tap-to-pay
+    "gas":       0.08,  # Shell: physical pump, chip+pin, low-value fills
 }
 
-MAX_FRAUD_RATE = 0.25
+MAX_FRAUD_RATE = 0.70
 
 CURRENCIES = ["USD", "EUR", "GBP", "CRC", "MXN"]
 
@@ -242,7 +246,7 @@ def wait_for_kafka(bootstrap, retries=15, delay=5):
 
 def main():
     mongo_client = MongoClient(MONGO_URI)
-    mongo_db = mongo_client[os.getenv("POSTGRES_DB", "techflow")]
+    mongo_db = mongo_client[os.getenv("MONGO_DB", os.getenv("POSTGRES_DB", "payflow"))]
 
     kafka_bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "")
     kafka_producer = wait_for_kafka(kafka_bootstrap) if kafka_bootstrap else None

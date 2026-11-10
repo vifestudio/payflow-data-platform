@@ -12,7 +12,7 @@ medallion lakehouse, real-time fraud scoring, ML feedback loop, pipeline orchest
 
 - Simulation: Python, Faker, NumPy (simulator/)
 - Sources: PostgreSQL 16 (pgvector), MongoDB 7, FastAPI FX rates API
-- Ingestion: Airbyte (incremental CDC + full-refresh)
+- Ingestion: Airbyte (Postgres incremental via xmin, MongoDB full-refresh)
 - Lakehouse: Cloudflare R2 (Parquet + Delta Lake)
 - Transform: dbt + DuckDB (httpfs reads Parquet directly from R2)
 - Orchestration: Prefect 3 (hourly batch pipeline)
@@ -21,7 +21,7 @@ medallion lakehouse, real-time fraud scoring, ML feedback loop, pipeline orchest
 - Merchant normalization: pgvector + sentence-transformers embeddings
 - Warehouse: BigQuery (payflow_analytics dataset)
 - BI: Looker Studio
-- Observability: Grafana
+- Observability: Prefect UI (batch pipeline) + Grafana/Prometheus (real-time streaming)
 - CI: GitHub Actions (dbt parse on every push, dbt test on main)
 
 ## Repository layout
@@ -29,7 +29,7 @@ medallion lakehouse, real-time fraud scoring, ML feedback loop, pipeline orchest
 simulator/           Synthetic transaction + fraud event generator (bulk_seed.py for bootstrap)
 sources/postgres/    PostgreSQL schema: accounts, transactions, fraud_labels, fraud_scores
 sources/fx-api/      FX rates microservice (FastAPI, port 8001)
-ingestion/           Airbyte connection definitions
+ingestion/fx-connector/  Custom Airbyte CDK connector for the FX API
 transform/           dbt project (payflow/): staging → silver → gold → marts
   models/staging/    Raw Bronze reads via DuckDB httpfs
   models/silver/     Typed, deduplicated, FX-normalized, PII-hashed (incremental)
@@ -41,6 +41,7 @@ orchestration/       Prefect flows: normalize_merchants → dbt → BigQuery
 ml/                  XGBoost training (train.py), FastAPI scoring service (serve.py)
   mlruns.db          MLflow SQLite tracking store
 streaming/           Kafka producer (simulator) + fraud consumer (writes to Postgres)
+infra/               Prometheus scrape config + Grafana dashboards (streaming observability)
 scripts/             Utilities: abort_multipart.py, generate_mcc_catalog.py
 docs/screenshots/    Evidence screenshots
 

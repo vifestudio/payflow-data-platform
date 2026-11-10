@@ -20,8 +20,30 @@ import psycopg2.extras
 import requests
 from dotenv import load_dotenv
 from kafka import KafkaConsumer
+from prometheus_client import Counter, Gauge, start_http_server
 
 load_dotenv()
+
+# Prometheus metrics scraped at :9108/metrics (Grafana streaming dashboard).
+METRICS_PORT = int(os.getenv("CONSUMER_METRICS_PORT", "9108"))
+MESSAGES_PROCESSED = Counter(
+    "payflow_messages_processed_total", "Transactions scored and persisted", ["decision"]
+)
+CONSUMER_ERRORS = Counter("payflow_consumer_errors_total", "Errors while processing", ["kind"])
+CONSUMER_LAG = Gauge("payflow_consumer_lag", "Total unconsumed offsets across partitions")
+
+
+def update_lag(consumer):
+    """Set the lag gauge to end_offset - position summed over assigned partitions."""
+    try:
+        parts = consumer.assignment()
+        if not parts:
+            return
+        ends = consumer.end_offsets(list(parts))
+        lag = sum(ends[tp] - consumer.position(tp) for tp in parts)
+        CONSUMER_LAG.set(max(lag, 0))
+    except Exception:
+        pass
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -115,8 +137,11 @@ def main():
     wait_for_ml(ML_SERVICE_URL)
     consumer = wait_for_kafka(KAFKA_BOOTSTRAP)
 
+    start_http_server(METRICS_PORT)
+    log.info(f"Prometheus metrics on :{METRICS_PORT}/metrics")
     log.info(f"Listening on topic '{KAFKA_TOPIC}' (group '{KAFKA_GROUP}')...")
 
+    processed = 0
     for message in consumer:
         event = message.value
         txn_id = event.get("transaction_id", "?")
@@ -149,13 +174,20 @@ def main():
                 ))
             pg_conn.commit()
 
+            MESSAGES_PROCESSED.labels(decision=result["decision"]).inc()
+            processed += 1
+            if processed % 20 == 0:
+                update_lag(consumer)
+
             log.info(f"[{result['decision']}] {result['transaction_id']}  p={result['probability']:.4f}")
 
         except requests.RequestException as e:
             log.error(f"ML service error for {txn_id}: {e}")
+            CONSUMER_ERRORS.labels(kind="ml").inc()
             pg_conn.rollback()
         except psycopg2.Error as e:
             log.error(f"DB error for {txn_id}: {e}")
+            CONSUMER_ERRORS.labels(kind="db").inc()
             pg_conn.rollback()
             # Reconnect on broken pipe
             try:
@@ -164,6 +196,7 @@ def main():
                 pass
         except Exception as e:
             log.error(f"Unexpected error for {txn_id}: {e}")
+            CONSUMER_ERRORS.labels(kind="other").inc()
             pg_conn.rollback()
 
 

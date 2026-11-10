@@ -9,6 +9,8 @@ Execution order:
   5. Run dbt tests; abort if any test errors
   6. Write Silver/Gold to R2 Delta Lake (MERGE for keyed tables)
   7. Load Gold tables to BigQuery
+  8. Retrain fraud model if gold_fraud_features grew by >= MIN_RETRAIN_ROWS
+     since the last training run (checkpoint: ml/last_trained_rows.txt)
 
 Schedule: hourly via flow.serve() at the bottom, or deploy to Prefect Cloud.
 
@@ -34,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
 
 AIRBYTE_URL = os.environ.get("AIRBYTE_URL", "http://localhost:8000")
+MIN_RETRAIN_ROWS = int(os.environ.get("MIN_RETRAIN_ROWS", "1000"))
 AIRBYTE_AUTH = (
     os.environ.get("AIRBYTE_USERNAME", "airbyte"),
     os.environ.get("AIRBYTE_PASSWORD", "password"),
@@ -196,6 +199,90 @@ def load_bigquery() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Model retrain task
+# ---------------------------------------------------------------------------
+
+@task(name="retrain-model", retries=0)
+def retrain_model() -> None:
+    """
+    Retrain the XGBoost fraud model if gold_fraud_features has grown
+    by at least MIN_RETRAIN_ROWS since the last training run.
+
+    Uses ml/last_trained_rows.txt as a checkpoint. If the file is absent
+    (first run), the model is always trained.
+    """
+    import duckdb
+
+    logger = get_run_logger()
+
+    CHECKPOINT_PATH = ROOT / "ml" / "last_trained_rows.txt"
+    DBT_DUCKDB = ROOT / "transform" / "payflow" / "dev.duckdb"
+
+    # Count current rows in gold
+    try:
+        con = duckdb.connect(str(DBT_DUCKDB), read_only=True)
+        current_rows = con.execute(
+            "SELECT COUNT(*) FROM main.gold_fraud_features"
+        ).fetchone()[0]
+        con.close()
+    except Exception as exc:
+        logger.warning(f"Could not read gold_fraud_features ({exc}). Skipping retrain.")
+        return
+
+    # Read last trained row count
+    last_rows = 0
+    if CHECKPOINT_PATH.exists():
+        try:
+            last_rows = int(CHECKPOINT_PATH.read_text().strip())
+        except ValueError:
+            last_rows = 0
+
+    new_rows = current_rows - last_rows
+    logger.info(
+        f"gold_fraud_features: {current_rows:,} rows total | "
+        f"trained on: {last_rows:,} | new: {new_rows:,} | threshold: {MIN_RETRAIN_ROWS:,}"
+    )
+
+    if new_rows < MIN_RETRAIN_ROWS:
+        logger.info(f"New rows ({new_rows:,}) below threshold, skipping retrain.")
+        return
+
+    logger.info(f"Retraining model on {current_rows:,} rows...")
+    env = {**os.environ, "PYTHONUTF8": "1"}
+    result = subprocess.run(
+        ["python", "train.py"],
+        cwd=ROOT / "ml",
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    logger.info(result.stdout[-3000:] if len(result.stdout) > 3000 else result.stdout)
+    if result.returncode != 0:
+        logger.error(result.stderr)
+        raise RuntimeError("ml/train.py failed — check logs above")
+
+    # Update checkpoint so next run knows where we left off
+    CHECKPOINT_PATH.write_text(str(current_rows))
+    logger.info(f"Retrain complete. Checkpoint updated to {current_rows:,} rows.")
+
+    # Restart the FastAPI scoring service so it loads the new model artifact
+    env_restart = {**os.environ, "PYTHONUTF8": "1"}
+    restart_result = subprocess.run(
+        ["docker", "compose", "restart", "ml-service"],
+        cwd=ROOT,
+        env=env_restart,
+        capture_output=True,
+        text=True,
+    )
+    if restart_result.returncode == 0:
+        logger.info("ml-service restarted with new model.")
+    else:
+        # Non-fatal: the old model keeps serving; the new artifact will load
+        # on the next container restart or manual redeploy.
+        logger.warning(f"ml-service restart failed (non-fatal): {restart_result.stderr.strip()}")
+
+
+# ---------------------------------------------------------------------------
 # Main flow
 # ---------------------------------------------------------------------------
 
@@ -244,6 +331,9 @@ def payflow_pipeline(full_refresh: bool = False) -> None:
 
     # 6. Load Gold to BigQuery
     load_bigquery()
+
+    # 7. Retrain fraud model if enough new Gold rows have accumulated
+    retrain_model()
 
     logger.info("PayFlow pipeline complete.")
 

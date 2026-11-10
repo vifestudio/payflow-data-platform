@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Query
 from datetime import date, timedelta
+import hashlib
 import numpy as np
 import uvicorn
 
@@ -16,7 +17,10 @@ BASE_RATES = {
 
 
 def rate_for_date(currency: str, d: date) -> float:
-    seed = int(d.strftime("%Y%m%d")) + abs(hash(currency)) % 10000
+    # Stable per-currency offset: Python's built-in hash() is salted per process,
+    # so it would produce different "historical" rates on every API restart.
+    currency_offset = int(hashlib.md5(currency.encode()).hexdigest(), 16) % 10000
+    seed = int(d.strftime("%Y%m%d")) + currency_offset
     rng = np.random.default_rng(seed)
     variation = rng.uniform(-0.015, 0.015)
     return round(BASE_RATES[currency] * (1 + variation), 6)
