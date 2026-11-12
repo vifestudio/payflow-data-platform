@@ -112,7 +112,7 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 
 ## Running locally
 
-Requires Docker Desktop.
+Requires Docker Desktop. To keep the whole project at zero cost, the operational and streaming layers run locally in Docker instead of on a paid cloud runtime; only the free tiers of R2 and the BigQuery Sandbox live in the cloud.
 
 ```bash
 cp .env.example .env
@@ -249,3 +249,9 @@ Sections:
 ### Looker Studio: fraud analytics dashboard
 
 ![Looker Studio dashboard](docs/screenshots/looker-studio-dashboard.png)
+
+### Docker: the full local stack
+
+To keep the project at zero cost, everything operational ran locally in Docker Desktop: Postgres (pgvector), MongoDB, Kafka with Zookeeper and Kafdrop, the simulator, the FX API, the ML scoring service, the streaming consumer, Prometheus and Grafana. Cloud usage was limited to free tiers (Cloudflare R2 and the BigQuery Sandbox). Once the Gold tables were loaded into BigQuery, the local stack was no longer needed for analytics and can be recreated at any time with `docker compose up -d`.
+
+![Docker containers](docs/screenshots/docker-containers.png)
