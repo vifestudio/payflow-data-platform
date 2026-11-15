@@ -118,7 +118,7 @@ Requires Docker Desktop. To keep the whole project at zero cost, the operational
 
 ```bash
 cp .env.example .env
-# fill in R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY in .env
+# fill in the three passwords and R2_ACCOUNT_ID, R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY in .env
 docker compose up -d
 ```
 
@@ -126,7 +126,7 @@ The simulator starts immediately and writes a batch every 5 minutes. FX rates ar
 
 Python dependencies are pinned to exact versions in every `requirements.txt`. The ML training and serving files share the same `xgboost`, `scikit-learn`, `joblib` and `numpy` on purpose: the model is a serialized scikit-learn pipeline and has to load in the scoring container exactly as it was trained.
 
-This is a local demo stack. The compose file publishes ports on all interfaces and Grafana ships with the default `admin` password, so do not run it on an untrusted network.
+Local security defaults: every published port binds to `127.0.0.1` (set `BIND_ADDR=0.0.0.0` in `.env` only if another host, such as Airbyte, must reach a service), and there are no default credentials. `docker compose` refuses to start until `POSTGRES_PASSWORD`, `MONGO_PASSWORD` and `GRAFANA_ADMIN_PASSWORD` are set in `.env` (generate each with `python -c "import secrets; print(secrets.token_hex(16))"`; hex avoids characters that break connection strings). `.env` is git-ignored. Grafana still allows anonymous read-only viewing of the dashboard, which is reachable from this machine only.
 
 ## Design decisions
 
