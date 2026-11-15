@@ -1,1 +1,6 @@
-notebooks/ linguist-documentation=true
+# GitHub language stats: the executed EDA notebook (2.3 MB of embedded output) is documentation,
+# not source. A bare "notebooks/" pattern does not match files inside the directory.
+notebooks/** linguist-documentation=true
+*.ipynb linguist-documentation=true
+# dbt models are the core of the transform layer; SQL is hidden from stats by default.
+*.sql linguist-detectable=true
