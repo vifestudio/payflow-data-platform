@@ -19,7 +19,7 @@ jobs:
           cache: pip
 
       - name: Install dbt
-        run: pip install dbt-duckdb==1.9.1
+        run: pip install dbt-duckdb==1.11.0
 
       - name: dbt parse (no credentials needed)
         working-directory: transform/payflow
@@ -28,6 +28,28 @@ jobs:
           R2_ENDPOINT: "https://placeholder.r2.cloudflarestorage.com"
           R2_ACCESS_KEY_ID: "placeholder"
           R2_SECRET_ACCESS_KEY: "placeholder"
+
+  python-tests:
+    name: Python tests (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ml, services]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tests/requirements-${{ matrix.suite }}.txt
+
+      - name: Install dependencies
+        run: pip install -r tests/requirements-${{ matrix.suite }}.txt
+
+      - name: pytest
+        run: pytest tests/${{ matrix.suite }}
 
   dbt-test:
     name: Run dbt tests
@@ -43,7 +65,7 @@ jobs:
           cache: pip
 
       - name: Install dbt
-        run: pip install dbt-duckdb==1.9.1
+        run: pip install dbt-duckdb==1.11.0
 
       - name: dbt seed
         working-directory: transform/payflow

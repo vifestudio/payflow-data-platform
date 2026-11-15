@@ -1,0 +1,5 @@
+# Test environment for the ML code (training pipeline + scoring API).
+-r ../ml/requirements.txt
+-r ../ml/requirements-serve.txt
+pytest==9.2.0
+httpx==0.28.1

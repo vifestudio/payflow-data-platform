@@ -1,11 +1,17 @@
-prefect>=3.0.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-google-cloud-bigquery>=3.17.0
-google-cloud-bigquery-storage>=2.24.0
-pandas>=2.1.0
-duckdb>=0.10.0
-db-dtypes>=1.2.0
-psycopg2-binary>=2.9.0
-pgvector>=0.2.0
-sentence-transformers>=3.0.0
+# Local pipeline environment (Prefect flow + the transform scripts it calls).
+# Pinned to the versions the pipeline has been running with.
+prefect==3.9.0
+requests==2.34.2
+python-dotenv==1.2.4
+google-cloud-bigquery==3.46.2
+google-cloud-bigquery-storage==2.43.0
+pandas==3.0.3
+duckdb==1.5.3
+db-dtypes==1.8.0
+psycopg2-binary==2.9.9
+pgvector==0.3.2
+sentence-transformers==6.2.0
+# Imported by transform/write_delta.py and run as a subprocess by the flow;
+# they were missing from this file.
+deltalake==1.6.6
+dbt-duckdb==1.11.0

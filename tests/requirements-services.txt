@@ -1,0 +1,8 @@
+# Test environment for the service containers (simulator, FX API, streaming consumer).
+# Versions match the containers; httpx stays below 0.28 because the FX API pins
+# fastapi 0.111 / starlette 0.37, whose TestClient needs the older httpx API.
+-r ../simulator/requirements.txt
+-r ../sources/fx-api/requirements.txt
+-r ../streaming/requirements.txt
+pytest==9.2.0
+httpx==0.27.2

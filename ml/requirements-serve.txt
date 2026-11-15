@@ -1,9 +1,11 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
-pandas>=2.1.0
-numpy>=1.26.0
-scikit-learn>=1.4.0
-xgboost>=2.0.0
-joblib>=1.3.0
-python-dotenv>=1.0.0
-prometheus-client>=0.20.0
+# Scoring container. Keep xgboost / scikit-learn / joblib / numpy identical to
+# requirements.txt: the model is a joblib-serialized sklearn pipeline.
+fastapi==0.150.0
+uvicorn[standard]==0.30.6
+pandas==3.0.3
+numpy==1.26.4
+scikit-learn==1.9.0
+xgboost==3.4.1
+joblib==1.5.3
+python-dotenv==1.2.4
+prometheus-client==0.26.0
