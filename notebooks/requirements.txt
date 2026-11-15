@@ -1,0 +1,14 @@
+# Environment used to execute notebooks/eda_gold.ipynb (2026-11-15).
+# python -m venv .venv-eda && .venv-eda/Scripts/pip install -r notebooks/requirements.txt
+google-cloud-bigquery==3.47.0
+db-dtypes==1.9.0
+google-auth==2.62.1
+pyarrow==26.0.1
+pandas==3.1.1
+numpy==2.5.4
+plotly==7.1.0
+jupyterlab==4.6.6
+ipykernel==7.4.0
+nbconvert==7.17.2
+nbformat==5.11.1
+nbclient==0.11.0

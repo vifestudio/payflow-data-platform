@@ -243,7 +243,7 @@ Sections:
 - Fraud pattern breakdown (`card_testing`, `geo_impossible`, `amount_anomaly`)
 - Numeric feature correlation matrix
 
-> **Note:** requires `gcloud auth application-default login` and the BigQuery Sandbox dataset to still be active. If the dataset expired, re-run `python transform/load_to_bigquery.py` first.
+> **Note:** the outputs stored in the notebook were executed on 2026-11-15 against the current 200,000-row dataset. To re-run it, install `notebooks/requirements.txt`, run `gcloud auth application-default login`, and make sure the BigQuery Sandbox dataset is still active (these tables expire on 2027-01-07). If the dataset expired, re-run `python transform/load_to_bigquery.py` first, then execute the notebook, for example with `jupyter nbconvert --to notebook --execute --inplace notebooks/eda_gold.ipynb`.
 
 ### GitHub Actions CI: both jobs green
 
