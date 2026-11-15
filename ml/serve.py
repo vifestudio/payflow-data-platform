@@ -85,15 +85,17 @@ class TransactionIn(BaseModel):
     device_type: str
     currency: str = Field(..., min_length=3, max_length=3)
 
-    @field_validator("currency")
+    # mode="before": normalize first so the length constraints above are checked
+    # against the cleaned value (" usd " is a valid currency, not a 5-char string).
+    @field_validator("currency", mode="before")
     @classmethod
-    def currency_upper(cls, v: str) -> str:
-        return v.upper().strip()
+    def currency_upper(cls, v):
+        return v.upper().strip() if isinstance(v, str) else v
 
-    @field_validator("account_country")
+    @field_validator("account_country", mode="before")
     @classmethod
-    def country_upper(cls, v: str) -> str:
-        return v.upper().strip()
+    def country_upper(cls, v):
+        return v.upper().strip() if isinstance(v, str) else v
 
     @field_validator("device_type")
     @classmethod
