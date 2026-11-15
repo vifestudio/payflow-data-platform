@@ -73,7 +73,7 @@ flowchart TD
 
 The batch pipeline trains the model on historical Gold features. The streaming pipeline scores each transaction in real time using that model before the payment clears. The fraud score is written back to PostgreSQL, where Airbyte picks it up in the next sync cycle; that feedback becomes part of the next training run, closing the loop. Retraining is automatic: the last step of every Prefect run counts how many new rows have accumulated in `gold_fraud_features` since the previous training and triggers `train.py` whenever the threshold is met (default 1,000 rows, configurable via `MIN_RETRAIN_ROWS`). The checkpoint is stored in `ml/last_trained_rows.txt`.
 
-Gold data is loaded into BigQuery as the analytical warehouse after merchant names are normalized via pgvector. Looker Studio connects natively to BigQuery for dashboards and reporting.
+Gold data is loaded into BigQuery as the analytical warehouse after merchant names are normalized via pgvector. Looker Studio reads a snapshot extracted from BigQuery for dashboards and reporting (see the Looker Studio section for why).
 
 ## Stack
 
@@ -248,7 +248,15 @@ Sections:
 
 ### Looker Studio: fraud analytics dashboard
 
+[Open the live dashboard](https://lookerstudio.google.com/reporting/a3976489-a7ba-475f-8e99-b92b214cd9b9) (view-only, no sign-in required).
+
 ![Looker Studio dashboard](docs/screenshots/looker-studio-dashboard.png)
+
+Five KPIs (transactions, fraud rate, total amount, flagged fraud amount, flagged fraud transactions), five charts (fraud by pattern, device, merchant category, month, and account type) and four filters (account type, device type, MCC category, date range). All filters apply to every component.
+
+> **The dashboard reads a snapshot, not a live BigQuery connection.** BigQuery Sandbox tables expire after 60 days, and a live connection would break the public link when they do. So the dashboard uses Looker Studio's Extract Data connector: a copy of `fct_transactions` (200,000 rows, eight fields: transaction id, date, account type, device type, MCC category, fraud pattern, `is_fraud`, `amount_usd`) stored inside Looker Studio. The three derived metrics (fraud transactions, fraud rate, fraud amount) are calculated fields on top of that extract. Auto-refresh is off. To rebuild it, reload the tables with `load_to_bigquery.py` and create a new extract from `fct_transactions`.
+
+> **Reading the numbers:** the data is synthetic and the 12.9% fraud rate is injected, far above real-world rates. "Fraud" means rows flagged by `is_fraud`, not confirmed losses, so "Fraud Amount" is the amount of flagged transactions.
 
 ### Docker: the full local stack
 
