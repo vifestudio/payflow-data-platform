@@ -34,7 +34,9 @@ transform/           dbt project (payflow/): staging → silver → gold → mar
   models/staging/    Raw Bronze reads via DuckDB httpfs
   models/silver/     Typed, deduplicated, FX-normalized, PII-hashed (incremental)
   models/gold/       ML features + aggregates (full rebuild each run)
-  models/marts/      BI-ready aggregates for Looker Studio
+  models/marts/      Star schema (fct_transactions, dim_merchants, dim_date) + BI marts
+                     (mart_fraud_by_merchant, mart_fraud_daily); dim_accounts is
+                     silver_accounts renamed when loaded to BigQuery
   seeds/             mcc_catalog.csv (981 MCC codes with risk_tier)
   tests/             Singular tests: fraud_rate bounds, amount_usd coverage
 orchestration/       Prefect flows: normalize_merchants → dbt → BigQuery
@@ -55,12 +57,19 @@ docs/screenshots/    Evidence screenshots
 - silver_transactions is incremental (delete+insert); Gold is full rebuild each run.
 - DuckDB reads Parquet from R2 via httpfs, no data movement, no cluster needed.
 - pgvector normalizes merchant names before Gold is loaded to BigQuery.
-- merchant excluded from ML features; mcc_category included instead; dirty name
-  variants at training time would not generalize to unseen variants at inference.
+- ML features are behavioral only (amount_usd, hour_of_day, day_of_week, is_weekend,
+  account_age_days, latency_ms, account_country, device_type, currency). Merchant
+  names are excluded (dirty variants would not generalize at inference); mcc_category
+  and risk_tier are excluded too and live in Gold/marts for analysis and BI.
+- stg_* models deduplicate Bronze (one row per key) so LEFT JOINs in Silver stay
+  one-to-one even if Airbyte re-syncs land duplicates.
 - Fraud scoring thresholds: approve < 0.30, review 0.30–0.69, decline >= 0.70.
   FRAUD_THRESHOLD (0.50) is independent and used only for the is_fraud boolean.
 - BigQuery Sandbox (free tier) expires 60 days after dataset creation.
   Re-run: python transform/load_to_bigquery.py
+- The public Looker Studio dashboard reads an Extract Data snapshot of
+  fct_transactions (not a live BigQuery connection), so it survives the sandbox
+  expiry. Fraud = rows flagged by is_fraud (synthetic), not confirmed losses.
 
 ## CI
 

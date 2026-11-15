@@ -120,7 +120,9 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The simulator starts immediately and writes a batch every 5 minutes. FX rates are available at `http://localhost:8001/rates`, Airbyte runs at `http://localhost:8000`, and the streaming dashboards are at `http://localhost:3001` (Grafana) over `http://localhost:9090` (Prometheus).
+The simulator starts immediately and writes a batch every 5 minutes. FX rates are available at `http://localhost:8001/rates`, and the streaming dashboards are at `http://localhost:3001` (Grafana) over `http://localhost:9090` (Prometheus). Airbyte is not part of `docker-compose.yml`: it is installed separately and expected at `http://localhost:8000`.
+
+This is a local demo stack. The compose file publishes ports on all interfaces and Grafana ships with the default `admin` password, so do not run it on an untrusted network.
 
 ## Design decisions
 
@@ -149,7 +151,7 @@ Cloudflare R2 holds the full history as Delta Lake files: cheap, durable, querya
 Merchant names in the raw data are dirty: "Amazon", "AMAZON.COM", "AMZN Marketplace", and "amazon.com*Digital" are the same merchant. pgvector generates sentence-transformer embeddings for each raw name and finds the nearest canonical name by cosine similarity. This normalization runs in the Prefect pipeline before Gold is loaded into BigQuery, so Looker Studio dashboards show clean merchant names. The fraud model deliberately excludes merchant as a feature; dirty names at training time would not generalize to unseen variants at inference time.
 
 **Model bootstrapped on a 200k historical seed, then retrained automatically.**
-A fraud model needs enough labeled history to learn from before it can score anything. The first model is trained on a one-time seed of 200,000 transactions spanning 365 days (`simulator/bulk_seed.py`). Fraud is skewed by merchant category the way real card-testing is: digital-goods merchants (gaming, software, streaming) carry a high fraud rate while in-person, low-value categories (fuel, food) stay near zero, so the labels have genuine structure instead of uniform noise. After bootstrap, every Prefect pipeline run checks whether `gold_fraud_features` has grown by at least `MIN_RETRAIN_ROWS` (default 1,000) since the last training. When the threshold is met, `train.py` runs automatically as the final pipeline step, logs the new run to MLflow, and overwrites `ml/model/fraud_pipeline.joblib`. The FastAPI scoring service reloads the model on the next request because it loads the artifact at startup; to pick up the new artifact without downtime, the service is restarted by the pipeline after training via a `docker compose restart ml-service` call. The checkpoint (`ml/last_trained_rows.txt`) persists between runs so the trigger is monotonic: each retrain builds on more labeled history than the last.
+A fraud model needs enough labeled history to learn from before it can score anything. The first model is trained on a one-time seed of 200,000 transactions spanning 365 days (`simulator/bulk_seed.py`). Fraud is skewed by merchant category the way real card-testing is: digital-goods merchants (gaming, software, streaming) carry a high fraud rate while in-person, low-value categories (fuel, food) stay near zero, so the labels have genuine structure instead of uniform noise. After bootstrap, every Prefect pipeline run checks whether `gold_fraud_features` has grown by at least `MIN_RETRAIN_ROWS` (default 1,000) since the last training. When the threshold is met, `train.py` runs automatically as the final pipeline step, logs the new run to MLflow, and overwrites `ml/model/fraud_pipeline.joblib`. The FastAPI scoring service loads the artifact once at startup, so the pipeline restarts it after training with `docker compose restart ml-service` (a short gap in scoring while it comes back up; if the restart fails the pipeline logs a warning and the old model keeps serving until the next restart). The checkpoint (`ml/last_trained_rows.txt`) persists between runs so the trigger is monotonic: each retrain builds on more labeled history than the last.
 
 **Synchronous authorization vs asynchronous analytics.**
 The customer-facing approve/decline answer belongs to the operational plane: a payments backend would call the fraud scoring API (`/predict`) synchronously and return the decision in the same request, in milliseconds, while persisting the transaction and its decision to Postgres. The lakehouse (R2) and warehouse (BigQuery) are never in that request path; they are the analytical plane that Airbyte populates downstream for monitoring, dashboards and retraining. This project implements the data engineering side: real-time scoring, the batch lakehouse, and the warehouse. The authorization backend itself (an `/authorize` endpoint that returns the decision to the client) is backend engineering and is intentionally out of scope, noted here to show where the data pipeline fits in the full system.
@@ -160,8 +162,11 @@ The batch pipeline trains the fraud model on historical Gold features; the strea
 **Silver is incremental; Gold is a full rebuild.**
 `silver_transactions` uses dbt's `delete+insert` incremental strategy: each run appends only new rows so Bronze history accumulates in Silver. Gold tables are rebuilt from scratch on every run because they are aggregates; recomputing them in full is cheaper than merging deltas and avoids stale rollup bugs.
 
-**MCC category yes, merchant name no.**
-The fraud model includes `mcc_category` and `risk_tier` as features but deliberately excludes `merchant` and `merchant_clean`. Merchant names in raw data are dirty: "Amazon", "AMAZON.COM", and "amzn marketplace" are the same merchant but would appear as three different categorical values to the model. Dirty names at training time would not generalize to unseen variants at inference time. MCC codes are stable, normalized via the `mcc_catalog` seed, and carry genuine signal about transaction risk.
+**Staging deduplicates Bronze before anything joins to it.**
+Bronze is append-only, so a re-sync or reset in Airbyte can land the same account, transaction or FX rate twice, and a reference file can repeat a raw merchant. Silver joins transactions to all of them with `LEFT JOIN`, so one duplicated row upstream multiplies every transaction downstream and breaks the `unique` tests. The `stg_*` models therefore keep one row per key (`ROW_NUMBER() ... QUALIFY`), which keeps every join one-to-one regardless of what Bronze holds.
+
+**Merchant name and MCC stay out of the model.**
+The fraud model trains only on behavioral and account features (`amount_usd`, `hour_of_day`, `day_of_week`, `is_weekend`, `account_age_days`, `latency_ms`, `account_country`, `device_type`, `currency`). It excludes `merchant` and `merchant_clean` because names in raw data are dirty: "Amazon", "AMAZON.COM", and "amzn marketplace" are the same merchant but would appear as three different categorical values, and that would not generalize to unseen variants at inference time. It also excludes `mcc_category` and `risk_tier`: they are stable, normalized through the `mcc_catalog` seed, and are carried in Gold and the marts for analysis and dashboards, but the model has to detect fraud from behavior, not from a merchant label. Adding MCC as a feature is a reasonable next experiment.
 
 **Fraud scoring thresholds.**
 The ML service applies three thresholds to the model's output probability: `approve` (< 0.30), `review` (0.30–0.69), `decline` (≥ 0.70). These are configurable via environment variables (`REVIEW_THRESHOLD`, `DECLINE_THRESHOLD`). A separate `FRAUD_THRESHOLD` (default 0.50) controls the boolean `is_fraud` flag independently of the authorization decision; a transaction can be in `review` without being flagged as fraud yet.
@@ -190,7 +195,7 @@ Kafdrop shows the `transactions` topic with 1,749 messages and consumer group `f
 
 ### Prefect: full pipeline completed
 
-End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`, `test-dbt`, `write-delta-lake`, `load-bigquery`. The Gantt shows each task's duration. dbt ran 16 models across staging, silver, and gold layers.
+End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`, `test-dbt`, `write-delta-lake`, `load-bigquery`. The Gantt shows each task's duration. This run (Nov 7) built 16 models across staging, silver, and gold; the star-schema marts and the automatic retraining step were added afterwards, so a run today builds 19 models and ends with the retrain check.
 
 ![Prefect pipeline completed](docs/screenshots/prefect-pipeline-completed.png)
 
@@ -198,7 +203,7 @@ End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`,
 
 Prefect covers the batch plane; Grafana covers the streaming plane. The fraud consumer and the `/predict` service expose Prometheus metrics that Grafana renders live: `/predict` latency (p50/p95), scoring throughput by decision, Kafka consumer lag, and the approve/review/decline split. Metrics, scrape config and the provisioned dashboard live in `infra/`.
 
-![Grafana streaming dashboard](docs/screenshots/grafana-streaming.png)
+The dashboard is provisioned automatically from [`infra/grafana/dashboards/payflow-streaming.json`](infra/grafana/dashboards/payflow-streaming.json) when the stack starts (Grafana at `http://localhost:3001`).
 
 ### MLflow: fraud detection model metrics
 
