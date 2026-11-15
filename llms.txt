@@ -45,6 +45,7 @@ ml/                  XGBoost training (train.py), FastAPI scoring service (serve
 streaming/           Kafka producer (simulator) + fraud consumer (writes to Postgres)
 infra/               Prometheus scrape config + Grafana dashboards (streaming observability)
 scripts/             Utilities: abort_multipart.py, generate_mcc_catalog.py
+tests/               pytest suites: tests/ml (training + scoring API) and tests/services (simulator, FX API, consumer)
 docs/screenshots/    Evidence screenshots
 
 ## Key design decisions
@@ -75,4 +76,5 @@ docs/screenshots/    Evidence screenshots
 
 GitHub Actions (.github/workflows/ci.yml):
 - dbt-parse: runs on every push/PR, placeholder R2 credentials, validates SQL/YAML
+- python-tests: pytest for tests/ml and tests/services (separate envs), every push/PR
 - dbt-test: runs on main only, uses real R2 secrets, runs seed + run + test

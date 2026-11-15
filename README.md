@@ -110,6 +110,7 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 | `notebooks/` | EDA over the star-schema tables in BigQuery, plus its pinned `requirements.txt` |
 | `data/` | `mcc_codes.json`: public MCC reference list (981 codes) that `scripts/generate_mcc_catalog.py` turns into the dbt seed |
 | `scripts/` | Utilities: `abort_multipart.py`, `generate_mcc_catalog.py` |
+| `tests/` | pytest suites for the ML code and the service containers (see [Tests](#tests)) |
 
 ## Running locally
 
@@ -122,6 +123,8 @@ docker compose up -d
 ```
 
 The simulator starts immediately and writes a batch every 5 minutes. FX rates are available at `http://localhost:8001/rates`, and the streaming dashboards are at `http://localhost:3001` (Grafana) over `http://localhost:9090` (Prometheus). Airbyte is not part of `docker-compose.yml`: it is installed separately and expected at `http://localhost:8000`.
+
+Python dependencies are pinned to exact versions in every `requirements.txt`. The ML training and serving files share the same `xgboost`, `scikit-learn`, `joblib` and `numpy` on purpose: the model is a serialized scikit-learn pipeline and has to load in the scoring container exactly as it was trained.
 
 This is a local demo stack. The compose file publishes ports on all interfaces and Grafana ships with the default `admin` password, so do not run it on an untrusted network.
 
@@ -164,13 +167,29 @@ The batch pipeline trains the fraud model on historical Gold features; the strea
 `silver_transactions` uses dbt's `delete+insert` incremental strategy: each run appends only new rows so Bronze history accumulates in Silver. Gold tables are rebuilt from scratch on every run because they are aggregates; recomputing them in full is cheaper than merging deltas and avoids stale rollup bugs.
 
 **Staging deduplicates Bronze before anything joins to it.**
-Bronze is append-only, so a re-sync or reset in Airbyte can land the same account, transaction or FX rate twice, and a reference file can repeat a raw merchant. Silver joins transactions to all of them with `LEFT JOIN`, so one duplicated row upstream multiplies every transaction downstream and breaks the `unique` tests. The `stg_*` models therefore keep one row per key (`ROW_NUMBER() ... QUALIFY`), which keeps every join one-to-one regardless of what Bronze holds.
+Bronze is append-only, so a re-sync or reset in Airbyte can land the same account, transaction or FX rate twice, and a reference file can repeat a raw merchant. Silver joins transactions to all of them with `LEFT JOIN`, so one duplicated row upstream multiplies every transaction downstream and breaks the `unique` tests. The `stg_*` models therefore keep one row per key (`ROW_NUMBER() ... QUALIFY`), which keeps every join one-to-one regardless of what Bronze holds. This happened here: the Airbyte sync on Nov 10 re-emitted the 200,000 seed transactions already loaded on Nov 9, so Bronze held 678,543 `transactions` rows for 478,543 distinct ids, and CI's `unique` tests caught the fan-out in Silver.
 
 **Merchant name and MCC stay out of the model.**
 The fraud model trains only on behavioral and account features (`amount_usd`, `hour_of_day`, `day_of_week`, `is_weekend`, `account_age_days`, `latency_ms`, `account_country`, `device_type`, `currency`). It excludes `merchant` and `merchant_clean` because names in raw data are dirty: "Amazon", "AMAZON.COM", and "amzn marketplace" are the same merchant but would appear as three different categorical values, and that would not generalize to unseen variants at inference time. It also excludes `mcc_category` and `risk_tier`: they are stable, normalized through the `mcc_catalog` seed, and are carried in Gold and the marts for analysis and dashboards, but the model has to detect fraud from behavior, not from a merchant label. Adding MCC as a feature is a reasonable next experiment.
 
 **Fraud scoring thresholds.**
 The ML service applies three thresholds to the model's output probability: `approve` (< 0.30), `review` (0.30–0.69), `decline` (≥ 0.70). These are configurable via environment variables (`REVIEW_THRESHOLD`, `DECLINE_THRESHOLD`). A separate `FRAUD_THRESHOLD` (default 0.50) controls the boolean `is_fraud` flag independently of the authorization decision; a transaction can be in `review` without being flagged as fraud yet.
+
+## Tests
+
+Two pytest suites run in CI next to the dbt checks, in separate environments because the ML and service containers pin different `numpy` versions:
+
+```bash
+pip install -r tests/requirements-ml.txt && pytest tests/ml
+pip install -r tests/requirements-services.txt && pytest tests/services
+```
+
+| Suite | What it checks |
+| --- | --- |
+| `tests/ml` | Feature contract (no label, merchant, MCC or PII features), time-based split, pipeline behaviour on unseen categories, and the scoring API end to end: approve / review / decline boundaries, input validation and normalization, 503 without a model, fail-fast startup, Prometheus counters |
+| `tests/services` | Fraud-risk model of the simulator and the historical seed (and that both stay identical), FX rates determinism and query validation, consumer lag gauge, and that every Postgres write is idempotent with bound parameters |
+
+The tests build a tiny model on synthetic data, so they need no database, Kafka, R2 or trained artifact. They already caught a real bug: the scoring API rejected `" usd "` because the length check ran before the whitespace trim.
 
 ## Evidence
 
@@ -260,7 +279,7 @@ Sections:
 
 ![Looker Studio dashboard](docs/screenshots/looker-studio-dashboard.png)
 
-Five KPIs (transactions, fraud rate, total amount, flagged fraud amount, flagged fraud transactions), five charts (fraud by pattern, device, merchant category, month, and account type) and four filters (account type, device type, MCC category, date range). All filters apply to every component.
+Five KPIs (transactions, fraud rate, total amount, flagged fraud amount, flagged fraud transactions), five charts (fraud by pattern, device, merchant category, month, and account type) and four filters (account type, device type, merchant category, date range). All filters apply to every component.
 
 > **The dashboard reads a snapshot, not a live BigQuery connection.** BigQuery Sandbox tables expire after 60 days, and a live connection would break the public link when they do. So the dashboard uses Looker Studio's Extract Data connector: a copy of `fct_transactions` (200,000 rows, eight fields: transaction id, date, account type, device type, MCC category, fraud pattern, `is_fraud`, `amount_usd`) stored inside Looker Studio. The three derived metrics (fraud transactions, fraud rate, fraud amount) are calculated fields on top of that extract. Auto-refresh is off. To rebuild it, reload the tables with `load_to_bigquery.py` and create a new extract from `fct_transactions`.
 
