@@ -107,7 +107,8 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 | `ml/` | XGBoost training (`train.py`) and FastAPI scoring service (`serve.py`) |
 | `streaming/` | Kafka fraud consumer: scores each transaction, writes to Postgres |
 | `infra/` | Prometheus scrape config and Grafana dashboards for the streaming plane |
-| `notebooks/` | EDA over Gold tables (BigQuery) |
+| `notebooks/` | EDA over the star-schema tables in BigQuery, plus its pinned `requirements.txt` |
+| `data/` | `mcc_codes.json`: public MCC reference list (981 codes) that `scripts/generate_mcc_catalog.py` turns into the dbt seed |
 | `scripts/` | Utilities: `abort_multipart.py`, `generate_mcc_catalog.py` |
 
 ## Running locally
@@ -203,6 +204,8 @@ End-to-end Prefect run with all 5 tasks green: `normalize-merchants`, `run-dbt`,
 
 Prefect covers the batch plane; Grafana covers the streaming plane. The fraud consumer and the `/predict` service expose Prometheus metrics that Grafana renders live: `/predict` latency (p50/p95), scoring throughput by decision, Kafka consumer lag, and the approve/review/decline split. Metrics, scrape config and the provisioned dashboard live in `infra/`.
 
+![Grafana streaming dashboard](docs/screenshots/grafana-streaming.webp)
+
 The dashboard is provisioned automatically from [`infra/grafana/dashboards/payflow-streaming.json`](infra/grafana/dashboards/payflow-streaming.json) when the stack starts (Grafana at `http://localhost:3001`).
 
 ### MLflow: fraud detection model metrics
@@ -268,3 +271,7 @@ Five KPIs (transactions, fraud rate, total amount, flagged fraud amount, flagged
 To keep the project at zero cost, everything operational ran locally in Docker Desktop: Postgres (pgvector), MongoDB, Kafka with Zookeeper and Kafdrop, the simulator, the FX API, the ML scoring service, the streaming consumer, Prometheus and Grafana. Cloud usage was limited to free tiers (Cloudflare R2 and the BigQuery Sandbox). Once the Gold tables were loaded into BigQuery, the local stack was no longer needed for analytics and can be recreated at any time with `docker compose up -d`.
 
 ![Docker containers](docs/screenshots/docker-containers.png)
+
+## License
+
+MIT, see [`LICENSE`](LICENSE).
