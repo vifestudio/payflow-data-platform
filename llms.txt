@@ -39,7 +39,7 @@ transform/           dbt project (payflow/): staging → silver → gold → mar
                      silver_accounts renamed when loaded to BigQuery
   seeds/             mcc_catalog.csv (981 MCC codes with risk_tier)
   tests/             Singular tests: fraud_rate bounds, amount_usd coverage
-orchestration/       Prefect flows: normalize_merchants → dbt → BigQuery
+orchestration/       Prefect flow: Airbyte sync (optional) → normalize_merchants → dbt run + test → Delta → BigQuery → retrain check
 ml/                  XGBoost training (train.py), FastAPI scoring service (serve.py)
   mlruns.db          MLflow SQLite tracking store
 streaming/           Kafka producer (simulator) + fraud consumer (writes to Postgres)

@@ -103,7 +103,7 @@ Gold data is loaded into BigQuery as the analytical warehouse after merchant nam
 | `sources/fx-api/` | FX rates microservice (FastAPI, port 8001) |
 | `ingestion/fx-connector/` | Custom Airbyte CDK connector for the FX API |
 | `transform/` | dbt project: Bronze → Silver → Gold → marts |
-| `orchestration/` | Prefect flow: normalize → dbt → write-delta → BigQuery |
+| `orchestration/` | Prefect flow: Airbyte sync (optional) → normalize → dbt run and test → write-delta → BigQuery → retrain check |
 | `ml/` | XGBoost training (`train.py`) and FastAPI scoring service (`serve.py`) |
 | `streaming/` | Kafka fraud consumer: scores each transaction, writes to Postgres |
 | `infra/` | Prometheus scrape config and Grafana dashboards for the streaming plane |

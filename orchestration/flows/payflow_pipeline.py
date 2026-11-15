@@ -16,11 +16,11 @@ Schedule: hourly via flow.serve() at the bottom, or deploy to Prefect Cloud.
 
 Env vars required (same .env as the rest of the project):
   AIRBYTE_URL                     e.g. http://localhost:8000
-  AIRBYTE_USERNAME                Airbyte basic-auth user (default: airbyte)
-  AIRBYTE_PASSWORD                Airbyte basic-auth password
-  AIRBYTE_POSTGRES_CONNECTION_ID  UUID from Airbyte UI
-  AIRBYTE_MONGO_CONNECTION_ID     UUID from Airbyte UI
-  AIRBYTE_FX_CONNECTION_ID        UUID from Airbyte UI
+  AIRBYTE_BEARER_TOKEN            OAuth2 token (optional: without it, step 1-2 are
+                                  skipped and Airbyte runs on its own schedule)
+  AIRBYTE_POSTGRES_CONNECTION_ID  UUID from Airbyte UI (needed only with the token)
+  AIRBYTE_MONGO_CONNECTION_ID     UUID from Airbyte UI (needed only with the token)
+  AIRBYTE_FX_CONNECTION_ID        UUID from Airbyte UI (needed only with the token)
 """
 import os
 import subprocess
@@ -37,10 +37,6 @@ load_dotenv(ROOT / ".env")
 
 AIRBYTE_URL = os.environ.get("AIRBYTE_URL", "http://localhost:8000")
 MIN_RETRAIN_ROWS = int(os.environ.get("MIN_RETRAIN_ROWS", "1000"))
-AIRBYTE_AUTH = (
-    os.environ.get("AIRBYTE_USERNAME", "airbyte"),
-    os.environ.get("AIRBYTE_PASSWORD", "password"),
-)
 DBT_DIR = ROOT / "transform" / "payflow"
 TRANSFORM_DIR = ROOT / "transform"
 
