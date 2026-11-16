@@ -35,7 +35,8 @@ flowchart TD
         end
         DBT["dbt + DuckDB"]
         VEC["pgvector\nmerchant name normalization\nsentence-transformers embeddings"]
-        ML["XGBoost + MLflow\nfraud detection model"]
+        XGB["XGBoost\nfraud detection model"]
+        MLF["MLflow\ntraining run tracking"]
     end
 
     subgraph ANALYTICS["Analytics Layer"]
@@ -62,12 +63,14 @@ flowchart TD
     B -->|"distinct merchants"| VEC -->|"merchant map"| SI
     B --> DBT --> SI --> DBT --> G
 
-    G -->|"trains on historical features"| ML
-    ML -->|"serves latest model"| API2
+    G -->|"trains on historical features"| XGB
+    XGB -->|"logs params · metrics · model"| MLF
+    XGB -->|"model file (joblib), loaded at startup"| API2
 
     G --> BQ --> LS & TB & PB & NLQ
 
-    PREF -. "triggers" .-> AB & VEC & DBT & ML & BQ
+    PREF -. "triggers" .-> AB & VEC & DBT & XGB & BQ
+    PREF -. "restarts after retrain" .-> API2
     KC & API2 -.->|"lag · latency"| PROM --> GRAF
 ```
 
